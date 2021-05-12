@@ -48,8 +48,7 @@ export default class HealthCollector {
         this.requestTimeout = 3 * 1000;
         this.requestRetryCount = 2;
 
-        this.readStatusFile = this.readStatusFile.bind(this);
-        this.checkHealthHttp = this.checkHealthHttp.bind(this);
+        this.updateHealthReport = this.updateHealthReport.bind(this);
     }
 
     async checkHealthHttp(url: string, method: string = 'GET'): Promise<HttpCheck> {
