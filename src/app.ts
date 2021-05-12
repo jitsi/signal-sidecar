@@ -1,7 +1,6 @@
 import config from './config';
 import express, { Request, Response } from 'express';
 import logger from './logger';
-import fs from 'fs';
 import HealthCollector, { HealthReport, HealthCollectorOptions } from './health_collector';
 
 logger.info('starting up signal-sidecar with config', { config });
@@ -12,9 +11,9 @@ const healthCollectorOptions: HealthCollectorOptions = {
     prosodyHealthUrl: config.ProsodyURL,
     statusFilePath: config.StatusPath,
     healthPollingInterval: config.PollingInterval,
-}
+};
 
-let healthCollector = new HealthCollector(healthCollectorOptions);
+const healthCollector = new HealthCollector(healthCollectorOptions);
 let healthReport: HealthReport = undefined;
 
 async function pollForHealth() {
@@ -32,7 +31,7 @@ pollForHealth();
 async function healthReportHandler(req: Request, res: Response) {
     if (healthReport) {
         res.status(200);
-        res.send(JSON.stringify(healthReport))
+        res.send(JSON.stringify(healthReport));
     } else {
         res.sendStatus(500);
     }

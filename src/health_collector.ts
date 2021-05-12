@@ -1,5 +1,5 @@
 import logger from './logger';
-import got, { CancelableRequest } from 'got';
+import got from 'got';
 import { readFileSync } from 'fs';
 
 export interface HealthCollectorOptions {
@@ -19,7 +19,7 @@ export interface HealthReport {
         prosodyStatusCode: number;
         statusFileFound: boolean;
         statusFileContents: string;
-    }
+    };
 }
 
 export interface HttpCheck {
@@ -51,45 +51,48 @@ export default class HealthCollector {
         this.updateHealthReport = this.updateHealthReport.bind(this);
     }
 
-    async checkHealthHttp(url: string, method: string = 'GET'): Promise<HttpCheck> {
+    async checkHealthHttp(url: string, method = 'GET'): Promise<HttpCheck> {
         try {
-            const response = await got(url, {
+            let got_method = got.get;
+            if (method == 'POST') {
+                got_method = got.post;
+            }
+            const response = await got_method(url, {
                 responseType: 'text',
                 timeout: this.requestTimeout,
                 retry: this.requestRetryCount,
-                method: method,
             });
             return <HttpCheck>{
                 reachable: true,
                 statusCode: response.statusCode,
-            }
+            };
         } catch (err) {
             logger.debug('checkHealthHttp failed', { err, url: url });
             return <HttpCheck>{
                 reachable: false,
                 statusCode: 0,
-            }
+            };
         }
     }
 
     readStatusFile(filePath: string): FileCheck {
         try {
-            const contents = readFileSync(filePath, {encoding: 'utf8', flag:'r'});
+            const contents = readFileSync(filePath, { encoding: 'utf8', flag: 'r' });
             return <FileCheck>{
                 readable: true,
                 contents: contents,
-            }
+            };
         } catch (err) {
             logger.debug('readStatusFile failed', { err, path: filePath });
             return <FileCheck>{
                 readable: false,
-                contents: "",
-            }
+                contents: '',
+            };
         }
     }
-    
+
     async updateHealthReport(): Promise<HealthReport> {
-        let report: Partial<HealthReport> = {};
+        const report: Partial<HealthReport> = {};
 
         // spawn concurrent calls
         const jicofoHealthResp = this.checkHealthHttp(this.jicofoHealthUrl);
@@ -110,19 +113,23 @@ export default class HealthCollector {
             report.status = statusFileCheck.contents;
         } else {
             report.services.statusFileFound = false;
-            report.services.statusFileContents = "not found"
-            report.status = "UNKNOWN"
+            report.services.statusFileContents = 'not found';
+            report.status = 'UNKNOWN';
         }
 
-        if (report.services.jicofoReachable && report.services.jicofoStatusCode == 200 &&
-            report.services.prosodyReachable && report.services.prosodyStatusCode == 200 &&
-            report.services.statusFileFound) {
-                report.health == "UP";
+        if (
+            report.services.jicofoReachable &&
+            report.services.jicofoStatusCode == 200 &&
+            report.services.prosodyReachable &&
+            report.services.prosodyStatusCode == 200 &&
+            report.services.statusFileFound
+        ) {
+            report.health == 'UP';
         } else {
-            report.health == "DOWN";
+            report.health == 'DOWN';
         }
 
         logger.debug('Stats report', { report });
-        return <HealthReport>(report);
+        return <HealthReport>report;
     }
 }
