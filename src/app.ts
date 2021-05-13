@@ -1,5 +1,5 @@
 import config from './config';
-import express, { Request, Response } from 'express';
+import express from 'express';
 import logger from './logger';
 import HealthCollector, { HealthReport, HealthCollectorOptions } from './health_collector';
 
@@ -17,6 +17,7 @@ const healthCollector = new HealthCollector(healthCollectorOptions);
 let healthReport: HealthReport = undefined;
 
 async function pollForHealth() {
+    logger.debug('polling');
     try {
         healthReport = await healthCollector.updateHealthReport();
     } catch (err) {
@@ -28,7 +29,7 @@ async function pollForHealth() {
 pollForHealth();
 
 // web handling
-async function healthReportHandler(req: Request, res: Response) {
+async function healthReportHandler(req: express.Request, res: express.Response) {
     if (healthReport) {
         res.status(200);
         res.send(JSON.stringify(healthReport));

@@ -1,6 +1,6 @@
 import logger from './logger';
 import got from 'got';
-import { readFileSync } from 'fs';
+import { readFile } from 'fs';
 
 export interface HealthCollectorOptions {
     jicofoHealthUrl: string;
@@ -22,13 +22,9 @@ export interface HealthReport {
     };
 }
 
-export interface HttpCheck {
+export interface HealthData {
     reachable: boolean;
-    statusCode: number;
-}
-
-export interface FileCheck {
-    readable: boolean;
+    code: number;
     contents: string;
 }
 
@@ -51,7 +47,8 @@ export default class HealthCollector {
         this.updateHealthReport = this.updateHealthReport.bind(this);
     }
 
-    async checkHealthHttp(url: string, method = 'GET'): Promise<HttpCheck> {
+    async checkHealthHttp(url: string, method = 'GET'): Promise<HealthData> {
+        logger.debug('aa: ' + url);
         try {
             let got_method = got.get;
             if (method == 'POST') {
@@ -62,61 +59,62 @@ export default class HealthCollector {
                 timeout: this.requestTimeout,
                 retry: this.requestRetryCount,
             });
-            return <HttpCheck>{
+            logger.debug('bb');
+            return <HealthData>{
                 reachable: true,
-                statusCode: response.statusCode,
+                code: response.statusCode,
+                contents: '',
             };
         } catch (err) {
-            logger.debug('checkHealthHttp failed', { err, url: url });
-            return <HttpCheck>{
+            logger.debug('cc');
+            logger.debug('checkHealthHttp failed', { err, url });
+            return <HealthData>{
                 reachable: false,
-                statusCode: 0,
+                code: 0,
+                contents: '',
             };
         }
     }
 
-    readStatusFile(filePath: string): FileCheck {
-        try {
-            const contents = readFileSync(filePath, { encoding: 'utf8', flag: 'r' });
-            return <FileCheck>{
-                readable: true,
-                contents: contents,
-            };
-        } catch (err) {
-            logger.debug('readStatusFile failed', { err, path: filePath });
-            return <FileCheck>{
-                readable: false,
-                contents: '',
-            };
-        }
+    async readStatusFile(filePath: string): Promise<HealthData> {
+        await readFile(filePath, { encoding: 'utf8', flag: 'r' }, function (err, data) {
+            if (!err) {
+                return <HealthData>{
+                    reachable: true,
+                    code: 1,
+                    contents: data,
+                };
+            } else {
+                logger.debug('readStatusFile failed', { err, path: filePath });
+            }
+        });
+        return <HealthData>{
+            reachable: false,
+            code: 0,
+            contents: '',
+        };
     }
 
     async updateHealthReport(): Promise<HealthReport> {
         const report: Partial<HealthReport> = {};
 
         // spawn concurrent calls
-        const jicofoHealthResp = this.checkHealthHttp(this.jicofoHealthUrl);
-        const prosodyHealthResp = this.checkHealthHttp(this.prosodyHealthUrl, 'POST');
+        const ccalls: Promise<HealthData>[] = [];
+        ccalls.push(this.checkHealthHttp(this.jicofoHealthUrl));
+        ccalls.push(this.checkHealthHttp(this.prosodyHealthUrl));
+        ccalls.push(this.readStatusFile(this.statusFilePath));
+        // const cresult = await Promise.all(ccalls);
+        Promise.all(ccalls).then((results: HealthData[]) => {
+            report.services.jicofoReachable = results[0].reachable;
+            report.services.jicofoStatusCode = results[0].code;
+            report.services.prosodyReachable = results[1].reachable;
+            report.services.prosodyStatusCode = results[1].code;
+            report.services.statusFileFound = results[2].reachable;
+            report.services.statusFileContents = results[2].contents;
+            report.status = results[2].contents;
+        });
 
-        const jhr = await jicofoHealthResp;
-        report.services.jicofoReachable = jhr.reachable;
-        report.services.jicofoStatusCode = jhr.statusCode;
-
-        const phr = await prosodyHealthResp;
-        report.services.prosodyReachable = phr.reachable;
-        report.services.prosodyStatusCode = phr.statusCode;
-
-        const statusFileCheck = this.readStatusFile(this.statusFilePath);
-        if (statusFileCheck.readable) {
-            report.services.statusFileFound = true;
-            report.services.statusFileContents = statusFileCheck.contents;
-            report.status = statusFileCheck.contents;
-        } else {
-            report.services.statusFileFound = false;
-            report.services.statusFileContents = 'not found';
-            report.status = 'UNKNOWN';
-        }
-
+        logger.debug(report);
         if (
             report.services.jicofoReachable &&
             report.services.jicofoStatusCode == 200 &&
