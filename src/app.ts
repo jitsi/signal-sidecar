@@ -16,7 +16,7 @@ const healthCollectorOptions: HealthCollectorOptions = {
 const healthCollector = new HealthCollector(healthCollectorOptions);
 const initHealthReport = <HealthReport>{
     healthy: false,
-    status: 'UNKNOWN',
+    status: 'unknown',
     services: {
         jicofoReachable: false,
         jicofoStatusCode: 0,
