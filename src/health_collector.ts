@@ -9,19 +9,17 @@ export interface HealthCollectorOptions {
     healthPollingInterval: number;
 }
 
-export class HealthReportServices {
-    jicofoReachable: boolean;
-    jicofoStatusCode: number;
-    prosodyReachable: boolean;
-    prosodyStatusCode: number;
-    statusFileFound: boolean;
-    statusFileContents: string;
-}
-
-export class HealthReport {
+export interface HealthReport {
     health: string;
     status: string;
-    services: HealthReportServices;
+    services: {
+        jicofoReachable: boolean;
+        jicofoStatusCode: number;
+        prosodyReachable: boolean;
+        prosodyStatusCode: number;
+        statusFileFound: boolean;
+        statusFileContents: string;
+    };
 }
 
 export interface HealthData {
@@ -97,40 +95,41 @@ export default class HealthCollector {
     }
 
     async updateHealthReport(): Promise<HealthReport> {
-        const report: HealthReport = new HealthReport();
-        report.services = new HealthReportServices();
-
         // spawn concurrent calls
         const ccalls: Promise<HealthData>[] = [];
         ccalls.push(this.checkHealthHttp(this.jicofoHealthUrl));
         ccalls.push(this.checkHealthHttp(this.prosodyHealthUrl));
-        //     ccalls.push(this.readStatusFile(this.statusFilePath));
+        ccalls.push(this.readStatusFile(this.statusFilePath));
 
         Promise.all(ccalls).then((results: HealthData[]) => {
-            report.services.jicofoReachable = results[0].reachable;
-            report.services.jicofoStatusCode = results[0].code;
-            report.services.prosodyReachable = results[1].reachable;
-            report.services.prosodyStatusCode = results[1].code;
-            //    report.services.statusFileFound = results[2].reachable;
-            //    report.services.statusFileContents = results[2].contents;
-            //    report.status = results[2].contents;
+            const jir = results[0].reachable;
+            const jsc = results[0].code;
+            const prr = results[1].reachable;
+            const psc = results[1].code;
+            const sff = results[2].reachable;
+            const sfc = results[2].contents;
+
+            let health = 'DOWN';
+            if (jir && jsc == 200 && prr && psc == 200 && sff) {
+                health = 'UP';
+            }
+
+            const report = <HealthReport>{
+                health: health,
+                status: sfc,
+                services: {
+                    jicofoReachable: jir,
+                    jicofoStatusCode: jsc,
+                    prosodyReachable: prr,
+                    prosodyStatusCode: psc,
+                    statusFileFound: sff,
+                    statusFileContents: sfc,
+                },
+            };
+            logger.debug('Stats report', { report });
+            return <HealthReport>report;
         });
 
-        logger.debug('AA report: ' + report);
-        logger.debug('BB : ' + report.services.jicofoReachable);
-        if (
-            report.services.jicofoReachable &&
-            report.services.jicofoStatusCode == 200 &&
-            report.services.prosodyReachable &&
-            report.services.prosodyStatusCode == 200 &&
-            report.services.statusFileFound
-        ) {
-            report.health == 'UP';
-        } else {
-            report.health == 'DOWN';
-        }
-
-        logger.debug('Stats report', { report });
-        return <HealthReport>report;
+        return <HealthReport>{};
     }
 }
