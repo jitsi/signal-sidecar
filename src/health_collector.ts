@@ -1,12 +1,11 @@
 import logger from './logger';
 import got from 'got';
-import { readFile } from 'fs';
+import { readFileSync } from 'fs';
 
-export interface HealthCollectorOptions {
-    jicofoHealthUrl: string;
-    prosodyHealthUrl: string;
-    statusFilePath: string;
-    healthPollingInterval: number;
+export interface HealthData {
+    reachable: boolean;
+    code: number;
+    contents: string;
 }
 
 export interface HealthReport {
@@ -22,10 +21,11 @@ export interface HealthReport {
     };
 }
 
-export interface HealthData {
-    reachable: boolean;
-    code: number;
-    contents: string;
+export interface HealthCollectorOptions {
+    jicofoHealthUrl: string;
+    prosodyHealthUrl: string;
+    statusFilePath: string;
+    healthPollingInterval: number;
 }
 
 export default class HealthCollector {
@@ -76,22 +76,22 @@ export default class HealthCollector {
 
     async readStatusFile(filePath: string): Promise<HealthData> {
         logger.debug('status file check of ' + filePath);
-        await readFile(filePath, { encoding: 'utf8', flag: 'r' }, function (err, data) {
-            if (!err) {
-                return <HealthData>{
-                    reachable: true,
-                    code: 1,
-                    contents: data,
-                };
-            } else {
-                logger.debug('readStatusFile failed', { err, path: filePath });
-            }
-        });
-        return <HealthData>{
-            reachable: false,
-            code: 0,
-            contents: '',
-        };
+
+        try {
+            const data = readFileSync(filePath, 'utf8');
+            return <HealthData>{
+                reachable: true,
+                code: 1,
+                contents: data.trim(),
+            };
+        } catch (err) {
+            logger.warn('readStatusFile failed', { err, path: filePath });
+            return <HealthData>{
+                reachable: false,
+                code: 0,
+                contents: '',
+            };
+        }
     }
 
     async updateHealthReport(): Promise<HealthReport> {
@@ -101,7 +101,7 @@ export default class HealthCollector {
         ccalls.push(this.checkHealthHttp(this.prosodyHealthUrl));
         ccalls.push(this.readStatusFile(this.statusFilePath));
 
-        Promise.all(ccalls).then((results: HealthData[]) => {
+        return Promise.all(ccalls).then((results: HealthData[]) => {
             const jir = results[0].reachable;
             const jsc = results[0].code;
             const prr = results[1].reachable;
@@ -126,10 +126,8 @@ export default class HealthCollector {
                     statusFileContents: sfc,
                 },
             };
-            logger.debug('Stats report', { report });
-            return <HealthReport>report;
+            logger.debug('updateHealthReport return', report);
+            return report;
         });
-
-        return <HealthReport>{};
     }
 }

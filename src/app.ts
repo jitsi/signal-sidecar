@@ -3,7 +3,7 @@ import express from 'express';
 import logger from './logger';
 import HealthCollector, { HealthReport, HealthCollectorOptions } from './health_collector';
 
-logger.info('starting up signal-sidecar with config', { config });
+logger.info('signal-sidecar startup', { config });
 
 // health polling
 const healthCollectorOptions: HealthCollectorOptions = {
@@ -14,23 +14,35 @@ const healthCollectorOptions: HealthCollectorOptions = {
 };
 
 const healthCollector = new HealthCollector(healthCollectorOptions);
-let healthReport: HealthReport = undefined;
+const initHealthReport = <HealthReport>{
+    health: 'DOWN',
+    status: 'UNKNOWN',
+    services: {
+        jicofoReachable: false,
+        jicofoStatusCode: 0,
+        prosodyReachable: false,
+        prosodyStatusCode: 0,
+        statusFileFound: false,
+        statusFileContents: '',
+    },
+};
+let healthReport: HealthReport = initHealthReport;
 
 async function pollForHealth() {
-    logger.debug('polling');
+    logger.debug('pollForHealth entry', { report: healthReport });
     try {
         healthReport = await healthCollector.updateHealthReport();
     } catch (err) {
         logger.error('pollForHealth error', { err });
-        healthReport = undefined;
+        healthReport = initHealthReport;
     }
-    logger.debug('HEALTH REPORT: ' + JSON.stringify(healthReport));
-
     setTimeout(pollForHealth, healthCollectorOptions.healthPollingInterval * 1000);
 }
 pollForHealth();
 
-// web handling
+// express handlers
+const app = express();
+
 async function healthReportHandler(req: express.Request, res: express.Response) {
     if (healthReport) {
         res.status(200);
@@ -40,13 +52,11 @@ async function healthReportHandler(req: express.Request, res: express.Response) 
     }
 }
 
-const app = express();
-
 app.get('/health', (req: express.Request, res: express.Response) => {
     res.sendStatus(200);
 });
 
-app.post('/signal/report', async (req, res, next) => {
+app.get('/signal/report', async (req, res, next) => {
     try {
         await healthReportHandler(req, res);
     } catch (err) {
