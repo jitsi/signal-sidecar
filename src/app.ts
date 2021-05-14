@@ -15,7 +15,7 @@ const healthCollectorOptions: HealthCollectorOptions = {
 
 const healthCollector = new HealthCollector(healthCollectorOptions);
 const initHealthReport = <HealthReport>{
-    health: 'DOWN',
+    healthy: false,
     status: 'UNKNOWN',
     services: {
         jicofoReachable: false,
@@ -53,6 +53,7 @@ async function healthReportHandler(req: express.Request, res: express.Response) 
 }
 
 app.get('/health', (req: express.Request, res: express.Response) => {
+    logger.debug('fielding /health');
     res.sendStatus(200);
 });
 
@@ -65,5 +66,5 @@ app.get('/signal/report', async (req, res, next) => {
 });
 
 app.listen(config.HTTPServerPort, () => {
-    logger.info(`...listening on :${config.HTTPServerPort}`);
+    logger.info(`signal-sidecar listening on :${config.HTTPServerPort}`);
 });

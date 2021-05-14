@@ -9,7 +9,7 @@ export interface HealthData {
 }
 
 export interface HealthReport {
-    health: string;
+    healthy: boolean;
     status: string;
     services: {
         jicofoReachable: boolean;
@@ -58,14 +58,16 @@ export default class HealthCollector {
                 responseType: 'text',
                 timeout: this.requestTimeout,
                 retry: this.requestRetryCount,
+                throwHttpErrors: false,
             });
+            //logger.debug('HTTP RESPONSE', { response });
             return <HealthData>{
                 reachable: true,
                 code: response.statusCode,
                 contents: '',
             };
         } catch (err) {
-            logger.debug('checkHealthHttp failed', { err, url });
+            logger.debug('checkHealthHttp failed ERROR ERROR', { err, url });
             return <HealthData>{
                 reachable: false,
                 code: 0,
@@ -109,13 +111,13 @@ export default class HealthCollector {
             const sff = results[2].reachable;
             const sfc = results[2].contents;
 
-            let health = 'DOWN';
+            let overallhealth = false;
             if (jir && jsc == 200 && prr && psc == 200 && sff) {
-                health = 'UP';
+                overallhealth = true;
             }
 
             const report = <HealthReport>{
-                health: health,
+                healthy: overallhealth,
                 status: sfc,
                 services: {
                     jicofoReachable: jir,
