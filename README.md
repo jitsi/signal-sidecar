@@ -1,8 +1,10 @@
 # signal-sidecar
 sidecar that reports detailed health information from a jitsi signal node
 
-/health responds with 200 if this sidecar is reachable
-/signal/report responds with 200 if the signal node is healthy and 500 if not
+## endpoints
+
+* `/health` responds with 200 if this sidecar is reachable
+* `/signal/report` responds with 200 if the signal node is healthy and 500 if not
 
 ## configuration
 
