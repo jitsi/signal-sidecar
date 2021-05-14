@@ -24,6 +24,8 @@ async function pollForHealth() {
         logger.error('pollForHealth error', { err });
         healthReport = undefined;
     }
+    logger.debug('HEALTH REPORT: ' + JSON.stringify(healthReport));
+
     setTimeout(pollForHealth, healthCollectorOptions.healthPollingInterval * 1000);
 }
 pollForHealth();
