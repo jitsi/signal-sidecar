@@ -53,7 +53,7 @@ async function healthReportHandler(req: express.Request, res: express.Response) 
 }
 
 app.get('/health', (req: express.Request, res: express.Response) => {
-    logger.debug('fielding /health');
+    logger.debug('handlnig /health');
     res.sendStatus(200);
 });
 
