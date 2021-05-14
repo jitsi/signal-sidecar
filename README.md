@@ -9,7 +9,7 @@ sidecar that reports detailed health information from a jitsi signal node
 ## configuration
 
 * `HTTP_PORT`: port for REST calls [6000]
-* `HA_PORT`: TCP port for HAProxy TCP mode [6060] <TO BE IMPLEMENTED>
+* `HA_PORT`: TCP port for HAProxy TCP mode [6060] `[TO BE IMPLEMENTED]`
 * `LOG_LEVEL`: debug, info, warn, or error [info]
 * `JICOFO_URL`: endpoint for jicofo health
 * `PROSODY_URL`: endpoint for prosody health
