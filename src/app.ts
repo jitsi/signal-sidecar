@@ -46,6 +46,9 @@ const app = express();
 async function healthReportHandler(req: express.Request, res: express.Response) {
     if (healthReport) {
         res.status(200);
+        if (!healthReport.healthy) {
+            res.status(500);
+        }
         res.send(JSON.stringify(healthReport));
     } else {
         res.sendStatus(500);
