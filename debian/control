@@ -1,0 +1,9 @@
+Package: signal-sidecar
+Version: 0.0.1
+Section: net
+Priority: optional
+Architecture: all
+Essential: no
+Maintainer: dev@jitsi.org
+Description: signal-sidecar collects health data from Jitsi signal nodes
+Depends: nodejs
