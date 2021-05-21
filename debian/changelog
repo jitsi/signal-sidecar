@@ -1,5 +1,5 @@
-signal-sidecar (0.0.1-1) UNRELEASED; urgency=medium
+signal-sidecar (0.0.1-1) unstable; urgency=medium
 
-  * Initial release.
+  * Initial release. Build from git: 06de991
 
--- Scott Boone <scott.boone@8x8.com>  Wed, 19 May 2021 12:00:00 +0000
+ -- Jitsi Team <dev@jitsi.org>  Fri, 21 May 2021 21:42:33 +0000

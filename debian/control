@@ -1,9 +1,16 @@
-Package: signal-sidecar
-Version: 0.0.1
+Source: signal-sidecar
+Maintainer: Jitsi Team <dev@jitsi.org>
+Uploaders: Emily Ivov <emcho@jitsi.org>, Scott Boone <scott.e.boone@gmail.com>
 Section: net
 Priority: optional
+Build-Depends: npm
+Standards-Version: 0.0.1
+Homepage: https://jitsi.org/meet
+Vcs-Browser: https://github.com/jitsi/signal-sidecar
+Vcs-Git: https://github.com/jitsi/signal-sidecar.git
+
+Package: signal-sidecar
 Architecture: all
 Essential: no
-Maintainer: dev@jitsi.org
-Description: signal-sidecar collects health data from Jitsi signal nodes
 Depends: nodejs
+Description: signal-sidecar collects health data from Jitsi signal nodes
