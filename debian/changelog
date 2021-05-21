@@ -1,0 +1,5 @@
+signal-sidecar (0.0.1-1) unstable; urgency=medium
+
+  * Initial release. Build from git: 06de991
+
+ -- Jitsi Team <dev@jitsi.org>  Fri, 21 May 2021 21:42:33 +0000

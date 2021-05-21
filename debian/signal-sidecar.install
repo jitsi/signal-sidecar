@@ -1,0 +1,3 @@
+dist/*.js                    /usr/share/signal-sidecar/
+node_modules                 /usr/share/signal-sidecar/
+debian/signal-sidecar.conf   /etc/init
