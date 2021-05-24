@@ -32,3 +32,7 @@ sidecar that reports detailed health information from a jitsi signal node
     },
 }
 ```
+
+## debian build command
+
+> dpkg-buildpackage -A -rfakeroot -us -uc
