@@ -1,0 +1,13 @@
+[Unit]
+Description=signal-sidecar node system service
+
+[Service]
+EnvironmentFile=/etc/jitsi/signal-sidecar/config
+ExecStart=/usr/bin/node /usr/share/signal-sidecar/app.js
+Type=simple
+User=signal-sidecar
+Group=jitsi
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
