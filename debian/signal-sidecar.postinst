@@ -47,7 +47,7 @@ case "$1" in
         CONFIG_DIR="/etc/jitsi/signal-sidecar/"
 
         if ! [ -f $CONFIG_DIR ]; then
-            mkdir $CONFIG_DIR
+            mkdir -p $CONFIG_DIR
         fi
 
         if ! dpkg-statoverride --list "$CONFIG_DIR" >/dev/null; then
