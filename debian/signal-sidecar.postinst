@@ -19,8 +19,6 @@ set -e
 
 case "$1" in
     configure)
-        CONFIG="/etc/jitsi/signal-sidecar/config"
-
         # we don't want to start the daemon as root
         if ! getent group jitsi > /dev/null ; then
             groupadd jitsi
@@ -46,7 +44,12 @@ case "$1" in
             GROUP=jitsi
         fi
 
-        CONFIG_DIR=$(dirname $CONFIG)
+        CONFIG_DIR="/etc/jitsi/signal-sidecar/"
+
+        if ! [ -f $CONFIG_DIR ]; then
+            mkdir $CONFIG_DIR
+        fi
+
         if ! dpkg-statoverride --list "$CONFIG_DIR" >/dev/null; then
                 chown root:$GROUP "$CONFIG_DIR"
                 chmod 750 "$CONFIG_DIR"
