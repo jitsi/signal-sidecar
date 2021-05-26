@@ -9,7 +9,7 @@ logger.info('signal-sidecar startup', { config });
 const healthCollectorOptions: HealthCollectorOptions = {
     jicofoHealthUrl: config.JicofoOrig + '/about/health',
     jicofoStatsUrl: config.JicofoOrig + '/stats',
-    prosodyHealthUrl: config.ProsodyURL + '/http-bind',
+    prosodyHealthUrl: config.ProsodyOrig + '/http-bind',
     statusFilePath: config.StatusPath,
     healthPollingInterval: config.PollingInterval,
 };

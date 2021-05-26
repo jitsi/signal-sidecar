@@ -1,4 +1,4 @@
-import config from './config'
+import config from './config';
 import logger from './logger';
 import got from 'got';
 import { readFileSync } from 'fs';
