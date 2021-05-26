@@ -34,7 +34,7 @@ sidecar that reports detailed health information from a jitsi signal node
         "statusFileContents": [stuff],                 // contents of the status file
     },
     "stats": {
-        "jicofoParticipants": [number]                 // number of jicofo partipants
+        "jicofoParticipants": [number]                 // number of jicofo participants
         "jicofoConferences": [number]                  // number of jicofo conferences
     }
 }
