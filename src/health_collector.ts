@@ -125,25 +125,33 @@ export default class HealthCollector {
         ccalls.push(this.readStatusFile(this.statusFilePath));
 
         return Promise.all(ccalls).then((results: HealthData[]) => {
-            const jhr = results[0].reachable; // jicofo health
-            const jhc = results[0].code;
-            const jsr = results[1].reachable; // jicofo stats
-            const jsc = results[1].code;
-            const jsx = results[1].contents;
-            const phr = results[2].reachable; // prosody health
-            const phc = results[2].code;
-            const sfr = results[3].reachable; // status file
-            const sfx = results[3].contents;
+            const jicofoReachable = results[0].reachable;
+            const jicofoStatusCode = results[0].code;
+            const jicofoStatsReachable = results[1].reachable;
+            const jicofoStatsStatusCode = results[1].code;
+            const jicofoStatsContents = results[1].contents;
+            const prosodyHealthReachable = results[2].reachable;
+            const prosodyHealthStatusCode = results[2].code;
+            const statusFileReachable = results[3].reachable;
+            const statusFileContents = results[3].contents;
 
-            const jStats = this.readStatsJSON(jsx);
+            const jStats = this.readStatsJSON(jicofoStatsContents);
 
             let overallhealth = false;
-            // all endpoints are reachable and code 200, file readable, stats parseable
-            if (jhr && jhc == 200 && jsr && jsc == 200 && phr && phc == 200 && sfr && jStats[0]) {
+            if (
+                jicofoReachable &&
+                jicofoStatusCode == 200 &&
+                jicofoStatsReachable &&
+                jicofoStatsStatusCode == 200 &&
+                prosodyHealthReachable &&
+                prosodyHealthStatusCode == 200 &&
+                statusFileReachable &&
+                jStats[0] // stats file parsed successfully
+            ) {
                 overallhealth = true;
             }
 
-            let overallstatus = sfx;
+            let overallstatus = statusFileContents;
             if (jStats[1] > config.ParticipantMax) {
                 overallstatus = 'drain';
             }
@@ -152,14 +160,14 @@ export default class HealthCollector {
                 healthy: overallhealth,
                 status: overallstatus,
                 services: {
-                    jicofoReachable: jhr,
-                    jicofoStatusCode: jhc,
-                    jicofoStatsReachable: jsr,
-                    jicofoStatsStatusCode: jsc,
-                    prosodyReachable: phr,
-                    prosodyStatusCode: phc,
-                    statusFileFound: sfr,
-                    statusFileContents: sfx,
+                    jicofoReachable: jicofoReachable,
+                    jicofoStatusCode: jicofoStatusCode,
+                    jicofoStatsReachable: jicofoStatsReachable,
+                    jicofoStatsStatusCode: jicofoStatsStatusCode,
+                    prosodyReachable: prosodyHealthReachable,
+                    prosodyStatusCode: prosodyHealthStatusCode,
+                    statusFileFound: statusFileReachable,
+                    statusFileContents: statusFileContents,
                 },
                 stats: {
                     jicofoParticipants: jStats[1],
