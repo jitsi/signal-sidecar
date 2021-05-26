@@ -62,11 +62,37 @@ async function healthReportHandler(req: express.Request, res: express.Response) 
     }
 }
 
+async function signalHealthHandler(req: express.Request, res: express.Response) {
+    if (healthReport) {
+        res.status(200);
+        if (!healthReport.healthy) {
+            res.status(500);
+            res.send('NOT_OK');
+        } else {
+            res.send('OK');
+        }
+    } else {
+        res.status(500);
+        res.send('NOT_OK');
+    }
+}
+
+// health of the signal-sidecar itself
 app.get('/health', (req: express.Request, res: express.Response) => {
-    logger.debug('handling /health');
     res.sendStatus(200);
 });
 
+// overall health of signal node, intended to be a public endpoint
+app.get(['/about/health', '/signal/health'], async (req, res, next) => {
+    try {
+        await signalHealthHandler(req, res);
+    } catch (err) {
+        next(err);
+    }
+    res.sendStatus(200);
+});
+
+// detailed health report intended for internal use for load balancing
 app.get('/signal/report', async (req, res, next) => {
     try {
         await healthReportHandler(req, res);
