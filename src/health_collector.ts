@@ -70,11 +70,10 @@ export default class HealthCollector {
                 retry: this.requestRetryCount,
                 throwHttpErrors: false,
             });
-            //logger.debug('HTTP RESPONSE', { response });
             return <HealthData>{
                 reachable: true,
                 code: response.statusCode,
-                contents: '',
+                contents: response.body,
             };
         } catch (err) {
             logger.debug('checkHealthHttp failed ERROR ERROR', { err, url });
