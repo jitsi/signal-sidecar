@@ -29,7 +29,7 @@ const initHealthReport = <HealthReport>{
         statusFileContents: '',
     },
     stats: {
-        jicofoPartipants: null,
+        jicofoParticipants: null,
         jicofoConferences: null,
     },
 };

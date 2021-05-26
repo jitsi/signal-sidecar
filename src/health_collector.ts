@@ -23,7 +23,7 @@ export interface HealthReport {
         statusFileContents: string;
     };
     stats: {
-        jicofoPartipants: number;
+        jicofoParticipants: number;
         jicofoConferences: number;
     };
 }
@@ -41,7 +41,6 @@ export default class HealthCollector {
     private jicofoStatsUrl: string;
     private prosodyHealthUrl: string;
     private statusFilePath: string;
-    private healthPollingInterval: number;
     private requestTimeout: number;
     private requestRetryCount: number;
 
@@ -50,7 +49,6 @@ export default class HealthCollector {
         this.jicofoStatsUrl = options.jicofoStatsUrl;
         this.prosodyHealthUrl = options.prosodyHealthUrl;
         this.statusFilePath = options.statusFilePath;
-        this.healthPollingInterval = options.healthPollingInterval;
         this.requestTimeout = 3 * 1000;
         this.requestRetryCount = 2;
 
@@ -105,13 +103,13 @@ export default class HealthCollector {
         }
     }
 
-    // returns [parsable, # partipants, # conferences]
+    // returns [parsable, # participants, # conferences]
     readStatsJSON(jstats: string): [boolean, number, number] {
         try {
             const parsed = JSON.parse(jstats);
-            const partipants = parsed['partipants'];
+            const participants = parsed['participants'];
             const conferences = parsed['conferences'];
-            return [true, partipants, conferences];
+            return [true, participants, conferences];
         } catch (err) {
             logger.warn('failed to parse jicofo stats json', { err, json: jstats });
             return [false, 0, 0];
@@ -163,7 +161,7 @@ export default class HealthCollector {
                     statusFileContents: sfx,
                 },
                 stats: {
-                    jicofoPartipants: jStats[1],
+                    jicofoParticipants: jStats[1],
                     jicofoConferences: jStats[2],
                 },
             };
