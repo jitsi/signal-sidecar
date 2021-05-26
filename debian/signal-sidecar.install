@@ -1,3 +1,5 @@
 dist/*.js                    /usr/share/signal-sidecar/
 node_modules                 /usr/share/signal-sidecar/
-debian/signal-sidecar.conf   /etc/init
+debian/signal-sidecar.conf   /etc/init/
+debian/shard-status          /etc/jitsi/
+debian/config                /etc/jitsi/signal-sidecar/
