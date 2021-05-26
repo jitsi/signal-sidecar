@@ -138,6 +138,7 @@ export default class HealthCollector {
             const jStats = this.readStatsJSON(jsx);
 
             let overallhealth = false;
+            // all endpoints are reachable and code 200, file readable, stats parseable
             if (jhr && jhc == 200 && jsr && jsc == 200 && phr && phc == 200 && sfr && jStats[0]) {
                 overallhealth = true;
             }
