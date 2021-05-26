@@ -66,7 +66,7 @@ async function signalHealthHandler(req: express.Request, res: express.Response) 
     if (healthReport) {
         res.status(200);
         if (!healthReport.healthy) {
-            res.status(500);
+            res.status(503);
             res.send('NOT_OK');
         } else {
             res.send('OK');
