@@ -89,7 +89,6 @@ app.get(['/about/health', '/signal/health'], async (req, res, next) => {
     } catch (err) {
         next(err);
     }
-    res.sendStatus(200);
 });
 
 // detailed health report intended for internal use for load balancing
