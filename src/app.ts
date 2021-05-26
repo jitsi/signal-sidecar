@@ -7,8 +7,9 @@ logger.info('signal-sidecar startup', { config });
 
 // health polling
 const healthCollectorOptions: HealthCollectorOptions = {
-    jicofoHealthUrl: config.JicofoURL,
-    prosodyHealthUrl: config.ProsodyURL,
+    jicofoHealthUrl: config.JicofoOrig + '/about/health',
+    jicofoStatsUrl: config.JicofoOrig + '/stats',
+    prosodyHealthUrl: config.ProsodyOrig + '/http-bind',
     statusFilePath: config.StatusPath,
     healthPollingInterval: config.PollingInterval,
 };
@@ -20,16 +21,22 @@ const initHealthReport = <HealthReport>{
     services: {
         jicofoReachable: false,
         jicofoStatusCode: 0,
+        jicofoStatsReachable: false,
+        jicofoStatsStatusCode: 0,
         prosodyReachable: false,
         prosodyStatusCode: 0,
         statusFileFound: false,
         statusFileContents: '',
     },
+    stats: {
+        jicofoParticipants: null,
+        jicofoConferences: null,
+    },
 };
 let healthReport: HealthReport = initHealthReport;
 
 async function pollForHealth() {
-    logger.debug('pollForHealth entry', { report: healthReport });
+    logger.debug('entering pollForHealth', { report: healthReport });
     try {
         healthReport = await healthCollector.updateHealthReport();
     } catch (err) {
@@ -56,7 +63,7 @@ async function healthReportHandler(req: express.Request, res: express.Response) 
 }
 
 app.get('/health', (req: express.Request, res: express.Response) => {
-    logger.debug('handlnig /health');
+    logger.debug('handling /health');
     res.sendStatus(200);
 });
 
