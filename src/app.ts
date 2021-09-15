@@ -72,7 +72,9 @@ async function pollForCensus() {
     }
     setTimeout(pollForCensus, censusCollectorOptions.censusPollingInterval * 1000);
 }
-pollForCensus();
+if (config.CensusPoll) {
+    pollForCensus();
+}
 
 ////////////////////
 // express handlers
