@@ -5,17 +5,20 @@ sidecar that reports detailed health information from a jitsi signal node
 
 * `/health` responds with 200 if this sidecar is reachable
 * `/signal/report` responds with 200 if the signal node is healthy and 500 if not
+* `/signal/census` responds with signal node room census
 
 ## configuration
 
 * `HTTP_PORT`: port for REST calls [6000]
-* `HA_PORT`: TCP port for HAProxy TCP mode [6060] `[TO BE IMPLEMENTED]`
-* `LOG_LEVEL`: debug, info, warn, or error [info]
+* `TCP_PORT`: TCP port for HAProxy TCP mode [6060] `[TO BE IMPLEMENTED]`
 * `JICOFO_ORIG`: origin for jicofo [http://localhost:8888]
 * `PROSODY_ORIG`: origin for prosody [http://localhost:5280]
 * `STATUS_PATH`: file for ready/drain status [/etc/jitsi/shard-status]
 * `POLLING_INTERVAL`: number of seconds between polls [5]
 * `PARTIPANT_MAX`: max number of participants before node should be drained [5000]
+* `CENSUS_POLL`: boolean indicating whether to poll census [false]
+* `CENSUS_HOST`: conference host name for census [meet.jitsi.net]
+* `LOG_LEVEL`: debug, info, warn, or error [info]
 
 ## /signal/report response json
 

@@ -4,23 +4,57 @@ import envalid from 'envalid';
 dotenv.config();
 
 const env = envalid.cleanEnv(process.env, {
-    HTTP_PORT: envalid.num({ default: 6000 }),
-    TCP_PORT: envalid.num({ default: 6060 }),
-    LOG_LEVEL: envalid.str({ default: 'info' }),
-    JICOFO_ORIG: envalid.str({ default: 'http://localhost:8888' }),
-    PROSODY_ORIG: envalid.str({ default: 'http://localhost:5280' }),
-    STATUS_PATH: envalid.str({ default: '/etc/jitsi/shard-status' }),
-    POLLING_INTERVAL: envalid.num({ default: 5 }),
-    PARTICIPANT_MAX: envalid.num({ default: 5000 }),
+    HTTP_PORT: envalid.num({
+        desc: 'http port of this service',
+        default: 6000,
+    }),
+    TCP_PORT: envalid.num({
+        desc: 'tcp port of this service for haproxy',
+        default: 6060,
+    }),
+    JICOFO_ORIG: envalid.str({
+        desc: 'base url of jicofo health',
+        default: 'http://localhost:8888',
+    }),
+    PROSODY_ORIG: envalid.str({
+        desc: 'base url of prosody rest api',
+        default: 'http://localhost:5280',
+    }),
+    STATUS_PATH: envalid.str({
+        desc: 'file to indicate ready/drain status of node',
+        default: '/etc/jitsi/shard-status',
+    }),
+    POLLING_INTERVAL: envalid.num({
+        desc: 'number of seconds between polling',
+        default: 5,
+    }),
+    PARTICIPANT_MAX: envalid.num({
+        desc: 'max number of participants before node should be drained',
+        default: 5000,
+    }),
+    CENSUS_POLL: envalid.bool({
+        desc: 'should the room census be polled?',
+        default: false,
+    }),
+    CENSUS_HOST: envalid.host({
+        desc: 'census conference host name',
+        default: 'meet.jitsi.net',
+    }),
+    LOG_LEVEL: envalid.str({
+        choices: ['debug', 'info', 'warn', 'error'],
+        default: 'info',
+    }),
 });
 
 export default {
     HTTPServerPort: env.HTTP_PORT,
     TCPServerPort: env.TCP_PORT,
-    LogLevel: env.LOG_LEVEL,
     JicofoOrig: env.JICOFO_ORIG,
     ProsodyOrig: env.PROSODY_ORIG,
     StatusPath: env.STATUS_PATH,
     PollingInterval: env.POLLING_INTERVAL,
     ParticipantMax: env.PARTICIPANT_MAX,
+    CensusPoll: env.CENSUS_POLL,
+    CensusHost: env.CENSUS_HOST,
+    LogLevel: env.LOG_LEVEL,
 };
