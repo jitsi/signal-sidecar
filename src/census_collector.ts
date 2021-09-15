@@ -42,7 +42,9 @@ export default class CensusCollector {
         logger.debug('pulling census data from: ' + url);
         try {
             const response = await got.get(url, {
-                hostname: this.censusHost,
+                headers: {
+                    host: this.censusHost,
+                },
                 responseType: 'json',
                 timeout: this.requestTimeout,
                 retry: this.requestRetryCount,
@@ -83,7 +85,11 @@ export default class CensusCollector {
                     };
                 }
             } else {
-                logger.error('room census endpoint unreachable', this.prosodyCensusUrl);
+                if (!results.reachable) {
+                    logger.error('room census endpoint unreachable');
+                } else {
+                    logger.error('room census endpoint bad status: ' + results.code);
+                }
             }
         });
         return <CensusReport>{
