@@ -35,7 +35,7 @@ export default class CensusCollector {
         this.updateCensusReport = this.updateCensusReport.bind(this);
     }
 
-    checkCensusHttp(url: string):CensusData {
+    async checkCensusHttp(url: string): Promise<CensusData> {
         logger.debug('pulling census data from: ' + url);
         try {
             const response = await got.get(url, {
@@ -70,14 +70,18 @@ export default class CensusCollector {
     }
 
     async updateCensusReport(): Promise<CensusReport> {
-        const results: CensusData = this.checkCensusHttp(this.prosodyCensusUrl);
-        const censusRoomData = this.validateCensusJSON(results.contents);
-        if (!results.reachable || !censusRoomData || results.code != 200) {
-            logger.warn('unable to update census');
-            return null;
-        }
+        this.checkCensusHttp(this.prosodyCensusUrl).then((results) => {
+            const censusRoomData = this.validateCensusJSON(results.contents);
+            if (results.reachable && censusRoomData && results.code == 200) {
+                return <CensusReport>{
+                    rooms: censusRoomData,
+                };
+            }
+        });
+        logger.warn('unable to update census');
         return <CensusReport>{
-            rooms: censusRoomData,
+            rooms: [],
         };
     }
 }
+//            const results: CensusData = this.checkCensusHttp(this.prosodyCensusUrl);
