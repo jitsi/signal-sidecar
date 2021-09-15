@@ -1,4 +1,3 @@
-import config from './config';
 import logger from './logger';
 import got from 'got';
 
@@ -15,7 +14,6 @@ export interface RoomData {
 }
 
 export interface CensusReport {
-    shard: string;
     rooms: Array<RoomData>;
 }
 
@@ -37,11 +35,10 @@ export default class CensusCollector {
         this.updateCensusReport = this.updateCensusReport.bind(this);
     }
 
-    async checkCensusHttp(url: string): Promise<CensusData> {
+    checkCensusHttp(url: string):CensusData {
         logger.debug('pulling census data from: ' + url);
         try {
-            const got_method = got.get;
-            const response = await got_method(url, {
+            const response = await got.get(url, {
                 responseType: 'json',
                 timeout: this.requestTimeout,
                 retry: this.requestRetryCount,
@@ -63,31 +60,24 @@ export default class CensusCollector {
     }
 
     validateCensusJSON(pcensus: string): Array<RoomData> {
-	    logger.debug('validating census JSON', pcensus)
-        let result: RoomData[] = []
-        const jsonArray = JSON.parse(pcensus); // top level is an []
-        jsonArray.forEach( element: RoomData => {
-            logger.debug(element);
-        });
-        return jsonArray;
+        try {
+            const jsonArray: RoomData[] = JSON.parse(pcensus)['room_census'];
+            return jsonArray;
+        } catch (err) {
+            logger.error('failed to parse: ', pcensus);
+            return null;
+        }
     }
 
     async updateCensusReport(): Promise<CensusReport> {
-        // spawn concurrent calls
-        const ccalls: Promise<CensusData>[] = [];
-        ccalls.push(this.checkCensusHttp(this.prosodyCensusUrl));
-
-        return Promise.all(ccalls).then((results: CensusData[]) => {
-            const prosodyCensusReachable = results[0].reachable;
-            const prosodyCensusStatusCode = results[0].code;
-            const prosodyCensusContents = results[0].contents;
-
-            const report = <CensusReport>{
-	        shard: "insert shard here",
-		rooms: prosodyCensusContents,  // Array<RoomData>
-            };
-            logger.debug('updateCensusReport return', report);
-            return report;
-        });
+        const results: CensusData = this.checkCensusHttp(this.prosodyCensusUrl);
+        const censusRoomData = this.validateCensusJSON(results.contents);
+        if (!results.reachable || !censusRoomData || results.code != 200) {
+            logger.warn('unable to update census');
+            return null;
+        }
+        return <CensusReport>{
+            rooms: censusRoomData,
+        };
     }
 }
