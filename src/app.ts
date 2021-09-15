@@ -53,6 +53,7 @@ pollForHealth();
 // census polling loop
 const censusCollectorOptions: CensusCollectorOptions = {
     prosodyCensusUrl: config.ProsodyOrig + '/room-census',
+    censusHost: config.CensusHost,
     censusPollingInterval: config.PollingInterval,
 };
 const censusCollector = new CensusCollector(censusCollectorOptions);

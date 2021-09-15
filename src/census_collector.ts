@@ -19,16 +19,19 @@ export interface CensusReport {
 
 export interface CensusCollectorOptions {
     prosodyCensusUrl: string;
+    censusHost: string;
     censusPollingInterval: number;
 }
 
 export default class CensusCollector {
     private prosodyCensusUrl: string;
+    private censusHost: string;
     private requestTimeout: number;
     private requestRetryCount: number;
 
     constructor(options: CensusCollectorOptions) {
         this.prosodyCensusUrl = options.prosodyCensusUrl;
+        this.censusHost = options.censusHost;
         this.requestTimeout = 3 * 1000;
         this.requestRetryCount = 2;
 
@@ -39,6 +42,7 @@ export default class CensusCollector {
         logger.debug('pulling census data from: ' + url);
         try {
             const response = await got.get(url, {
+                hostname: this.censusHost,
                 responseType: 'json',
                 timeout: this.requestTimeout,
                 retry: this.requestRetryCount,
