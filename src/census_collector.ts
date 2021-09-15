@@ -64,24 +64,26 @@ export default class CensusCollector {
             const jsonArray: RoomData[] = JSON.parse(pcensus)['room_census'];
             return jsonArray;
         } catch (err) {
-            logger.error('failed to parse: ', pcensus);
+            logger.error('failed to parse census data', pcensus);
             return null;
         }
     }
 
     async updateCensusReport(): Promise<CensusReport> {
         this.checkCensusHttp(this.prosodyCensusUrl).then((results) => {
-            const censusRoomData = this.validateCensusJSON(results.contents);
-            if (results.reachable && censusRoomData && results.code == 200) {
-                return <CensusReport>{
-                    rooms: censusRoomData,
-                };
+            if (results.reachable && results.code == 200) {
+                const censusRoomData = this.validateCensusJSON(results.contents);
+                if (censusRoomData) {
+                    return <CensusReport>{
+                        rooms: censusRoomData,
+                    };
+                }
+            } else {
+                logger.error('room census endpoint unreachable', this.prosodyCensusUrl);
             }
         });
-        logger.warn('unable to update census');
         return <CensusReport>{
             rooms: [],
         };
     }
 }
-//            const results: CensusData = this.checkCensusHttp(this.prosodyCensusUrl);
