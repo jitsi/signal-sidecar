@@ -59,8 +59,7 @@ const censusCollectorOptions: CensusCollectorOptions = {
 const censusCollector = new CensusCollector(censusCollectorOptions);
 
 const initCensusReport = <CensusReport>{
-    shard: 'unknown',
-    rooms: [],
+    room_census: [],
 };
 let censusReport: CensusReport = initCensusReport;
 
