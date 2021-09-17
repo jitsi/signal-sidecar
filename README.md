@@ -15,7 +15,7 @@ sidecar that reports detailed health information from a jitsi signal node
 * `PROSODY_ORIG`: origin for prosody [http://localhost:5280]
 * `STATUS_PATH`: file for ready/drain status [/etc/jitsi/shard-status]
 * `POLLING_INTERVAL`: number of seconds between polls [5]
-* `PARTIPANT_MAX`: max number of participants before node should be drained [5000]
+* `PARTIPANT_MAX`: report node in drain state with > this # participants [5000]
 * `CENSUS_POLL`: boolean indicating whether to poll census [false]
 * `CENSUS_HOST`: conference host name for census [meet.jitsi.net]
 * `LOG_LEVEL`: debug, info, warn, or error [info]

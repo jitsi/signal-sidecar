@@ -13,6 +13,7 @@ const healthCollectorOptions: HealthCollectorOptions = {
     jicofoStatsUrl: config.JicofoOrig + '/stats',
     prosodyHealthUrl: config.ProsodyOrig + '/http-bind',
     statusFilePath: config.StatusPath,
+    participantMax: config.ParticipantMax,
     healthPollingInterval: config.PollingInterval,
 };
 const healthCollector = new HealthCollector(healthCollectorOptions);

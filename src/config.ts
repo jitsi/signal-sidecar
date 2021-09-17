@@ -29,7 +29,7 @@ const env = envalid.cleanEnv(process.env, {
         default: 5,
     }),
     PARTICIPANT_MAX: envalid.num({
-        desc: 'max number of participants before node should be drained',
+        desc: 'report node in drain state if participants exceed this value',
         default: 5000,
     }),
     CENSUS_POLL: envalid.bool({
