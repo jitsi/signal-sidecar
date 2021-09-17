@@ -1,11 +1,6 @@
 import logger from './logger';
 import got from 'got';
 
-export interface CensusData {
-    reachable: boolean;
-    contents: CensusReport;
-}
-
 export interface RoomData {
     room_name: string;
     participants: number;
@@ -36,11 +31,11 @@ export default class CensusCollector {
         this.updateCensusReport = this.updateCensusReport.bind(this);
     }
 
-    async checkCensusHttp(url: string): Promise<CensusData> {
-        logger.debug('pulling census data from: ' + url);
+    async updateCensusReport(): Promise<CensusReport> {
+        logger.debug('poll census data: ' + this.prosodyCensusUrl);
         try {
             const response = await got
-                .get(url, {
+                .get(this.prosodyCensusUrl, {
                     headers: {
                         host: this.censusHost,
                     },
@@ -50,27 +45,13 @@ export default class CensusCollector {
                     throwHttpErrors: false,
                 })
                 .json<CensusReport>();
-            return <CensusData>{
-                reachable: true,
-                contents: response,
-            };
+            logger.debug('prosody census response: ' + JSON.stringify(response));
+            return response;
         } catch (err) {
-            logger.warn('checkCensusHttp failed', { err, url });
-            return <CensusData>{
-                reachable: false,
-                contents: null,
+            logger.warn('checkCensusHttp failed', { err });
+            return <CensusReport>{
+                room_census: null,
             };
         }
-    }
-
-    async updateCensusReport(): Promise<CensusReport> | undefined {
-        this.checkCensusHttp(this.prosodyCensusUrl).then((results) => {
-            if (results.reachable) {
-                return results.contents;
-            } else {
-                logger.error('room census endpoint is unreachable or gave bad response');
-            }
-        });
-        return undefined;
     }
 }

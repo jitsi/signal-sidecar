@@ -47,7 +47,7 @@ async function pollForHealth() {
     }
     setTimeout(pollForHealth, healthCollectorOptions.healthPollingInterval * 1000);
 }
-pollForHealth();
+//pollForHealth();
 
 /////////////////////////
 // census polling loop
@@ -112,6 +112,7 @@ async function censusReportHandler(req: express.Request, res: express.Response) 
         res.status(200);
         res.send(JSON.stringify(censusReport));
     } else {
+        logger.warn('census report requested and missing');
         res.sendStatus(500);
     }
 }
@@ -143,13 +144,15 @@ app.get('/signal/report', async (req, res, next) => {
 });
 
 // census of rooms in the signal node
-app.get('/signal/census', async (req, res, next) => {
-    try {
-        await censusReportHandler(req, res);
-    } catch (err) {
-        next(err);
-    }
-});
+if (config.CensusPoll) {
+    app.get('/signal/census', async (req, res, next) => {
+        try {
+            await censusReportHandler(req, res);
+        } catch (err) {
+            next(err);
+        }
+    });
+}
 
 app.listen(config.HTTPServerPort, () => {
     logger.info(`signal-sidecar listening on :${config.HTTPServerPort}`);
