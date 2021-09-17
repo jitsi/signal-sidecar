@@ -47,7 +47,7 @@ async function pollForHealth() {
     }
     setTimeout(pollForHealth, healthCollectorOptions.healthPollingInterval * 1000);
 }
-//pollForHealth();
+pollForHealth();
 
 /////////////////////////
 // census polling loop
