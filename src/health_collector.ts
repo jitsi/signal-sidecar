@@ -1,4 +1,3 @@
-import config from './config';
 import logger from './logger';
 import got from 'got';
 import { readFileSync } from 'fs';
@@ -33,6 +32,7 @@ export interface HealthCollectorOptions {
     jicofoStatsUrl: string;
     prosodyHealthUrl: string;
     statusFilePath: string;
+    participantMax: number;
     healthPollingInterval: number;
 }
 
@@ -41,6 +41,7 @@ export default class HealthCollector {
     private jicofoStatsUrl: string;
     private prosodyHealthUrl: string;
     private statusFilePath: string;
+    private participantMax: number;
     private requestTimeout: number;
     private requestRetryCount: number;
 
@@ -49,6 +50,7 @@ export default class HealthCollector {
         this.jicofoStatsUrl = options.jicofoStatsUrl;
         this.prosodyHealthUrl = options.prosodyHealthUrl;
         this.statusFilePath = options.statusFilePath;
+        this.participantMax = options.participantMax;
         this.requestTimeout = 3 * 1000;
         this.requestRetryCount = 2;
 
@@ -152,7 +154,7 @@ export default class HealthCollector {
             }
 
             let overallstatus = statusFileContents;
-            if (jStats[1] > config.ParticipantMax) {
+            if (jStats[1] > this.participantMax) {
                 overallstatus = 'drain';
             }
 
