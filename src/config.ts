@@ -38,7 +38,6 @@ const env = envalid.cleanEnv(process.env, {
     }),
     CENSUS_HOST: envalid.host({
         desc: 'census conference host name',
-        default: 'meet.jitsi.net',
     }),
     LOG_LEVEL: envalid.str({
         choices: ['debug', 'info', 'warn', 'error'],
