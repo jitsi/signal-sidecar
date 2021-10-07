@@ -17,7 +17,7 @@ sidecar that reports detailed health information from a jitsi signal node
 * `POLLING_INTERVAL`: number of seconds between polls [5]
 * `PARTIPANT_MAX`: report node in drain state with > this # participants [5000]
 * `CENSUS_POLL`: boolean indicating whether to poll census [false]
-* `CENSUS_HOST`: conference host name for census [meet.jitsi.net]
+* `CENSUS_HOST`: conference host name for census
 * `LOG_LEVEL`: debug, info, warn, or error [info]
 
 ## /signal/report response json

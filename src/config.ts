@@ -38,6 +38,7 @@ const env = envalid.cleanEnv(process.env, {
     }),
     CENSUS_HOST: envalid.host({
         desc: 'census conference host name',
+        default: '',
     }),
     LOG_LEVEL: envalid.str({
         choices: ['debug', 'info', 'warn', 'error'],
