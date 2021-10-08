@@ -1,4 +1,4 @@
-import * as dotenv from 'dotenv';
+
 import envalid from 'envalid';
 
 dotenv.config();
@@ -38,7 +38,7 @@ const env = envalid.cleanEnv(process.env, {
     }),
     CENSUS_HOST: envalid.host({
         desc: 'census conference host name',
-        default: '',
+        default: 'host.example.com',
     }),
     LOG_LEVEL: envalid.str({
         choices: ['debug', 'info', 'warn', 'error'],
