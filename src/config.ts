@@ -1,4 +1,4 @@
-
+import * as dotenv from 'dotenv';
 import envalid from 'envalid';
 
 dotenv.config();
