@@ -76,7 +76,7 @@ export default class HealthCollector {
                 contents: response.body,
             };
         } catch (err) {
-            logger.debug('checkHealthHttp failed ERROR ERROR', { err, url });
+            logger.warn('health_collector checkHealthHttp failed', { err, url });
             return <HealthData>{
                 reachable: false,
                 code: 0,
@@ -96,7 +96,7 @@ export default class HealthCollector {
                 contents: data.trim(),
             };
         } catch (err) {
-            logger.warn('readStatusFile failed', { err, path: filePath });
+            logger.warn('health_collector readStatusFile failed', { err, path: filePath });
             return <HealthData>{
                 reachable: false,
                 code: 0,
@@ -176,7 +176,13 @@ export default class HealthCollector {
                     jicofoConferences: jStats[2],
                 },
             };
-            logger.debug('updateHealthReport return', report);
+
+            if (!overallhealth) {
+                logger.warn('updateHealthReport returned unhealthy', report);
+            } else {
+                logger.debug('updateHealthReport returned healthy', report);
+            }
+
             return report;
         });
     }
