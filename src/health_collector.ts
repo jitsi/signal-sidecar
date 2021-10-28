@@ -178,11 +178,10 @@ export default class HealthCollector {
             };
 
             if (!overallhealth) {
-                logger.warn('updateHealthReport returned unhealthy', report);
+                logger.warn('updateHealthReport returned unhealthy', { report });
             } else {
-                logger.debug('updateHealthReport returned healthy', report);
+                logger.debug('updateHealthReport return', { report });
             }
-
             return report;
         });
     }
