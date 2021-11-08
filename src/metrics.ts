@@ -23,22 +23,22 @@ const requestDuration = new promClient.Histogram({
 });
 
 const signalHealthCheckCounter = new promClient.Counter({
-    name: 'signal_health_check_counter',
+    name: 'signal_health_check',
     help: 'number of times the health check has been called',
 });
 
 const signalHealthCheckUnhealthyCounter = new promClient.Counter({
-    name: 'signal_unhealthy_check_counter',
+    name: 'signal_unhealthy_check',
     help: 'number of times the health check has been called and returned unhealthy',
 });
 
 const signalHealthGauge = new promClient.Gauge({
-    name: 'signal_health_gauage',
+    name: 'signal_health',
     help: 'gauge for signal health (1) or unhealthy (0)',
 });
 
 const signalCensusGauge = new promClient.Gauge({
-    name: 'signal_census_gauage',
+    name: 'signal_census',
     help: 'gauge for census health (1) or unhealthy (0)',
 });
 
