@@ -3,6 +3,7 @@ import express from 'express';
 import logger from './logger';
 import HealthCollector, { HealthReport, HealthCollectorOptions } from './health_collector';
 import CensusCollector, { CensusReport, CensusCollectorOptions } from './census_collector';
+import metrics from './metrics';
 
 logger.info('signal-sidecar startup', { config });
 
@@ -15,6 +16,7 @@ const healthCollectorOptions: HealthCollectorOptions = {
     statusFilePath: config.StatusPath,
     participantMax: config.ParticipantMax,
     healthPollingInterval: config.PollingInterval,
+    collectMetrics: config.Metrics,
 };
 const healthCollector = new HealthCollector(healthCollectorOptions);
 
@@ -56,6 +58,7 @@ const censusCollectorOptions: CensusCollectorOptions = {
     prosodyCensusUrl: config.ProsodyOrig + '/room-census',
     censusHost: config.CensusHost,
     censusPollingInterval: config.PollingInterval,
+    collectMetrics: config.Metrics,
 };
 const censusCollector = new CensusCollector(censusCollectorOptions);
 
@@ -96,10 +99,16 @@ async function healthReportHandler(req: express.Request, res: express.Response) 
 }
 
 async function signalHealthHandler(req: express.Request, res: express.Response) {
+    if (config.Metrics) {
+        metrics.SignalHealthCheckCounter.inc(1);
+    }
     if (healthReport) {
         res.status(200);
         if (!healthReport.healthy) {
             logger.warn('/health returned 503', { report: healthReport });
+            if (config.Metrics) {
+                metrics.SignalHealthCheckUnhealthyCounter.inc(1);
+            }
             res.status(503);
             res.send('NOT_OK');
         } else {
@@ -107,6 +116,9 @@ async function signalHealthHandler(req: express.Request, res: express.Response) 
         }
     } else {
         logger.warn('/health returned 500 due to no healthReport');
+        if (config.Metrics) {
+            metrics.SignalHealthCheckUnhealthyCounter.inc(1);
+        }
         res.status(500);
         res.send('NOT_OK');
     }
@@ -124,6 +136,8 @@ async function censusReportHandler(req: express.Request, res: express.Response) 
 
 /////////////////////////
 // routing endpoints
+
+app.use(['/about*', '/signal*'], metrics.middleware);
 
 // health of the signal-sidecar itself
 app.get('/health', (req: express.Request, res: express.Response) => {
@@ -157,6 +171,10 @@ if (config.CensusPoll) {
             next(err);
         }
     });
+}
+
+if (config.Metrics) {
+    metrics.registerHandler(app, '/metrics');
 }
 
 app.listen(config.HTTPServerPort, () => {

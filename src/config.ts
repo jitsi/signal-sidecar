@@ -40,6 +40,10 @@ const env = envalid.cleanEnv(process.env, {
         desc: 'census conference host name',
         default: 'host.example.com',
     }),
+    METRICS: envalid.bool({
+        desc: 'publish prometheus metrics?',
+        default: true,
+    }),
     LOG_LEVEL: envalid.str({
         choices: ['debug', 'info', 'warn', 'error'],
         default: 'info',
@@ -56,5 +60,6 @@ export default {
     ParticipantMax: env.PARTICIPANT_MAX,
     CensusPoll: env.CENSUS_POLL,
     CensusHost: env.CENSUS_HOST,
+    Metrics: env.METRICS,
     LogLevel: env.LOG_LEVEL,
 };
