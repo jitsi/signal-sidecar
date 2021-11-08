@@ -4,7 +4,7 @@ sidecar that reports detailed health information from a jitsi signal node
 ## endpoints
 
 * `/health` responds with 200 if this sidecar is reachable
-* `/signal/report` responds with 200 if the signal node is healthy and 500 if not
+* `/signal/report` json report; code 200 = healthy, 500/503 = broken/unhealthy
 * `/signal/census` responds with signal node room census
 
 ## configuration
@@ -18,6 +18,7 @@ sidecar that reports detailed health information from a jitsi signal node
 * `PARTIPANT_MAX`: report node in drain state with > this # participants [5000]
 * `CENSUS_POLL`: boolean indicating whether to poll census [false]
 * `CENSUS_HOST`: conference host name for census
+* `METRICS`: boolean indicating whether to publish prometheus metrics [true]
 * `LOG_LEVEL`: debug, info, warn, or error [info]
 
 ## /signal/report response json

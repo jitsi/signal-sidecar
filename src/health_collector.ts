@@ -1,6 +1,7 @@
 import logger from './logger';
 import got from 'got';
 import { readFileSync } from 'fs';
+import metrics from './metrics';
 
 export interface HealthData {
     reachable: boolean;
@@ -34,6 +35,7 @@ export interface HealthCollectorOptions {
     statusFilePath: string;
     participantMax: number;
     healthPollingInterval: number;
+    collectMetrics: boolean;
 }
 
 export default class HealthCollector {
@@ -44,6 +46,7 @@ export default class HealthCollector {
     private participantMax: number;
     private requestTimeout: number;
     private requestRetryCount: number;
+    private collectMetrics: boolean;
 
     constructor(options: HealthCollectorOptions) {
         this.jicofoHealthUrl = options.jicofoHealthUrl;
@@ -53,6 +56,7 @@ export default class HealthCollector {
         this.participantMax = options.participantMax;
         this.requestTimeout = 3 * 1000;
         this.requestRetryCount = 2;
+        this.collectMetrics = options.collectMetrics;
 
         this.updateHealthReport = this.updateHealthReport.bind(this);
     }
@@ -179,8 +183,14 @@ export default class HealthCollector {
 
             if (!overallhealth) {
                 logger.warn('updateHealthReport returned unhealthy', { report });
+                if (this.collectMetrics) {
+                    metrics.SignalHealthGauge.set(0);
+                }
             } else {
                 logger.debug('updateHealthReport return', { report });
+                if (this.collectMetrics) {
+                    metrics.SignalHealthGauge.set(1);
+                }
             }
             return report;
         });

@@ -1,5 +1,6 @@
 import logger from './logger';
 import got from 'got';
+import metrics from './metrics';
 
 export interface RoomData {
     room_name: string;
@@ -15,6 +16,7 @@ export interface CensusCollectorOptions {
     prosodyCensusUrl: string;
     censusHost: string;
     censusPollingInterval: number;
+    collectMetrics: boolean;
 }
 
 export default class CensusCollector {
@@ -22,12 +24,14 @@ export default class CensusCollector {
     private censusHost: string;
     private requestTimeout: number;
     private requestRetryCount: number;
+    private collectMetrics: boolean;
 
     constructor(options: CensusCollectorOptions) {
         this.prosodyCensusUrl = options.prosodyCensusUrl;
         this.censusHost = options.censusHost;
         this.requestTimeout = 3 * 1000;
         this.requestRetryCount = 2;
+        this.collectMetrics = options.collectMetrics;
         this.updateCensusReport = this.updateCensusReport.bind(this);
     }
 
@@ -46,9 +50,15 @@ export default class CensusCollector {
                 })
                 .json<CensusReport>();
             logger.debug('prosody census response: ' + JSON.stringify(response));
+            if (this.collectMetrics) {
+                metrics.SignalCensusGauge.set(1);
+            }
             return response;
         } catch (err) {
             logger.warn('checkCensusHttp failed', { err });
+            if (this.collectMetrics) {
+                metrics.SignalCensusGauge.set(0);
+            }
             return <CensusReport>{
                 room_census: null,
             };
