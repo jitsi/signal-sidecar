@@ -53,8 +53,8 @@ export function middleware(req: express.Request, res: express.Response, next: ex
             statted = true;
             const delta = process.hrtime(start);
             let uri = 'unknown';
-            if (req.route) {
-                uri = req.route.path.replace(':', '');
+            if (req.originalUrl) {
+                uri = req.originalUrl.replace(':', '');
             }
             requestDuration.observe({ method, uri }, delta[0] + delta[1] / 1e9);
 
