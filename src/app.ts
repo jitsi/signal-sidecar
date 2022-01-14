@@ -39,11 +39,16 @@ const initHealthReport = <HealthReport>{
     },
 };
 let healthReport: HealthReport = initHealthReport;
+let pollHealthy = false;
 
 async function pollForHealth() {
     logger.debug('entering pollForHealth', { report: healthReport });
     try {
         healthReport = await healthCollector.updateHealthReport();
+        if (!pollHealthy && healthReport.healthy) {
+            logger.info('signal node switched from unhealthy to healthy');
+        }
+        pollHealthy = healthReport.healthy;
     } catch (err) {
         logger.error('pollForHealth error', { err });
         healthReport = initHealthReport;
@@ -88,7 +93,7 @@ async function healthReportHandler(req: express.Request, res: express.Response) 
     if (healthReport) {
         res.status(200);
         if (!healthReport.healthy) {
-            logger.warn('/signal/report returned 503', { report: healthReport });
+            logger.debug('/signal/report returned 503', { report: healthReport });
             res.status(503);
         }
         res.send(JSON.stringify(healthReport));
@@ -105,7 +110,7 @@ async function signalHealthHandler(req: express.Request, res: express.Response) 
     if (healthReport) {
         res.status(200);
         if (!healthReport.healthy) {
-            logger.warn('/health returned 503', { report: healthReport });
+            logger.debug('/health returned 503', { report: healthReport });
             if (config.Metrics) {
                 metrics.SignalHealthCheckUnhealthyCounter.inc(1);
             }
