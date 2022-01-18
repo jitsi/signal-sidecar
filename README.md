@@ -1,11 +1,22 @@
 # signal-sidecar
-sidecar that reports detailed health information from a jitsi signal node
+a sidecar that reports detailed health information from a jitsi signal node.
+
+## overview
+`signal-sidecar` collects data from `jicofo` and `prosody` and presents it in a
+format intended for consumption by devops tools that manage a Jitsi deployment. 
+
+Reported drain status is normally based on the contents of a file located at
+`STATUS_PATH`. The sidecar will report a `DRAIN` status anytime the number of
+`jicofo` participants exceeds `PARTICIPANT_MAX`.
+
+`signal-sidecar` is capable of querying the `mod_muc_census` Jitsi Meet Prosody
+plugin and reporting room census data as well.
 
 ## endpoints
 
 * `/health` responds with 200 if this sidecar is reachable
 * `/signal/report` json report; code 200 = healthy, 500/503 = broken/unhealthy
-* `/signal/census` responds with signal node room census
+* `/signal/census` responds with signal node room census (optional; requires `mod_muc_census`)
 
 ## configuration
 
