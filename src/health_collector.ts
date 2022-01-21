@@ -84,7 +84,7 @@ export default class HealthCollector {
             return <HealthData>{
                 reachable: false,
                 code: 0,
-                contents: 'CHECKHEALTH_FAILED',
+                contents: '',
             };
         }
     }
@@ -112,10 +112,6 @@ export default class HealthCollector {
     // returns [parsable, # participants, # conferences]
     readStatsJSON(jstats: string): [boolean, number, number] {
         try {
-            if (jstats === 'CHECKHEALTH_FAILED') {
-                logger.debug('unable to obtain stats from jicofo')
-                return [false, 0, 0];
-            }
             const parsed = JSON.parse(jstats);
             const participants = parsed['participants'];
             const conferences = parsed['conferences'];
@@ -145,7 +141,10 @@ export default class HealthCollector {
             const statusFileReachable = results[3].reachable;
             const statusFileContents = results[3].contents;
 
-            const jStats = this.readStatsJSON(jicofoStatsContents);
+            let jStats = [false, 0, 0];
+            if (jicofoStatsReachable) {
+                jStats = this.readStatsJSON(jicofoStatsContents);
+            }
 
             let overallhealth = false;
             if (
