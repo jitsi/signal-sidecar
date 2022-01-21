@@ -141,7 +141,10 @@ export default class HealthCollector {
             const statusFileReachable = results[3].reachable;
             const statusFileContents = results[3].contents;
 
-            const jStats = this.readStatsJSON(jicofoStatsContents);
+            let jStats = [false, 0, 0];
+            if (jicofoStatsReachable) {
+                jStats = this.readStatsJSON(jicofoStatsContents);
+            }
 
             let overallhealth = false;
             if (
