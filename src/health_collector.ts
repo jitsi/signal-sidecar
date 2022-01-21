@@ -111,6 +111,10 @@ export default class HealthCollector {
 
     // returns [parsable, # participants, # conferences]
     readStatsJSON(jstats: string): [boolean, number, number] {
+        if (jstats === '') {
+            logger.debug('unable to obtain stats from jicofo')
+            return [false, 0, 0];
+        }
         try {
             const parsed = JSON.parse(jstats);
             const participants = parsed['participants'];
