@@ -104,7 +104,7 @@ export default class HealthCollector {
             return <HealthData>{
                 reachable: false,
                 code: 0,
-                contents: 'i',
+                contents: '',
             };
         }
     }
