@@ -84,7 +84,7 @@ export default class HealthCollector {
             return <HealthData>{
                 reachable: false,
                 code: 0,
-                contents: '',
+                contents: 'CHECKHEALTH_FAILED',
             };
         }
     }
@@ -104,7 +104,7 @@ export default class HealthCollector {
             return <HealthData>{
                 reachable: false,
                 code: 0,
-                contents: '',
+                contents: 'i',
             };
         }
     }
@@ -112,7 +112,7 @@ export default class HealthCollector {
     // returns [parsable, # participants, # conferences]
     readStatsJSON(jstats: string): [boolean, number, number] {
         try {
-            if (jstats === '') {
+            if (jstats === 'CHECKHEALTH_FAILED') {
                 logger.debug('unable to obtain stats from jicofo')
                 return [false, 0, 0];
             }
