@@ -1,7 +1,7 @@
 import config from './config';
 import express from 'express';
 import logger from './logger';
-import HealthCollector, { HealthReport, HealthCollectorOptions, HealthData } from './health_collector';
+import HealthCollector, { HealthReport, HealthCollectorOptions } from './health_collector';
 import CensusCollector, { CensusReport, CensusCollectorOptions } from './census_collector';
 import metrics from './metrics';
 
@@ -20,21 +20,8 @@ const healthCollectorOptions: HealthCollectorOptions = {
 };
 const healthCollector = new HealthCollector(healthCollectorOptions);
 
-const initHealthReport = <HealthReport>{
-    healthy: false,
-    status: 'unknown',
-    services: {
-        jicofoHealth: <HealthData>{reachable: false, code: 0, contents: ''},
-        jicofoStatus: <HealthData>{reachable: false, code: 0, contents: ''},
-        jicofoStats: <HealthData>{reachable: false, code: 0, contents: ''},
-        prosodyStatus: <HealthData>{reachable: false, code: 0, contents: ''},
-        statusFileResult: <HealthData>{reachable: false, code: 0, contents: ''},
-    },
-    stats: {
-        jicofoParticipants: null,
-        jicofoConferences: null,
-    },
-};
+const initHealthReport = healthCollector.initHealthReport()
+
 let healthReport: HealthReport = initHealthReport;
 let pollHealthy = false;
 

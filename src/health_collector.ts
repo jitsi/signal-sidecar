@@ -54,6 +54,25 @@ export default class HealthCollector {
         this.updateHealthReport = this.updateHealthReport.bind(this);
     }
 
+    //returns an empty unhealthy report for use starting up
+    initHealthReport() {
+        return <HealthReport>{
+            healthy: false,
+            status: 'unknown',
+            services: {
+                jicofoHealth: <HealthData>{reachable: false, code: 0, contents: ''},
+                jicofoStatus: <HealthData>{reachable: false, code: 0, contents: ''},
+                jicofoStats: <HealthData>{reachable: false, code: 0, contents: ''},
+                prosodyStatus: <HealthData>{reachable: false, code: 0, contents: ''},
+                statusFileResult: <HealthData>{reachable: false, code: 0, contents: ''},
+            },
+            stats: {
+                jicofoParticipants: null,
+                jicofoConferences: null,
+            },
+        };
+    }
+
     async checkHealthHttp(url: string, method = 'GET'): Promise<HealthData> {
         logger.debug('health check of ' + url);
         try {
