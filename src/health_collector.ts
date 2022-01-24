@@ -15,6 +15,7 @@ export interface HealthReport {
     services: {
         jicofoReachable: boolean;
         jicofoStatusCode: number;
+        jicofoStatusContents: string;
         jicofoStatsReachable: boolean;
         jicofoStatsStatusCode: number;
         prosodyReachable: boolean;
@@ -156,6 +157,7 @@ export default class HealthCollector {
                 services: {
                     jicofoReachable: jicofoHealth.reachable,
                     jicofoStatusCode: jicofoHealth.code,
+                    jicofoStatusContents: jicofoHealth.contents,
                     jicofoStatsReachable: jicofoStats.reachable,
                     jicofoStatsStatusCode: jicofoStats.code,
                     prosodyReachable: prosodyHealth.reachable,

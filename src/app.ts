@@ -26,6 +26,7 @@ const initHealthReport = <HealthReport>{
     services: {
         jicofoReachable: false,
         jicofoStatusCode: 0,
+        jicofoStatusContents: '',
         jicofoStatsReachable: false,
         jicofoStatsStatusCode: 0,
         prosodyReachable: false,
