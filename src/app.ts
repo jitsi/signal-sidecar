@@ -1,7 +1,7 @@
 import config from './config';
 import express from 'express';
 import logger from './logger';
-import HealthCollector, { HealthReport, HealthCollectorOptions } from './health_collector';
+import HealthCollector, { HealthReport, HealthCollectorOptions, HealthData } from './health_collector';
 import CensusCollector, { CensusReport, CensusCollectorOptions } from './census_collector';
 import metrics from './metrics';
 
@@ -24,15 +24,11 @@ const initHealthReport = <HealthReport>{
     healthy: false,
     status: 'unknown',
     services: {
-        jicofoReachable: false,
-        jicofoStatusCode: 0,
-        jicofoStatusContents: '',
-        jicofoStatsReachable: false,
-        jicofoStatsStatusCode: 0,
-        prosodyReachable: false,
-        prosodyStatusCode: 0,
-        statusFileFound: false,
-        statusFileContents: '',
+        jicofoHealth: <HealthData>{reachable: false, code: 0, contents: ''},
+        jicofoStatus: <HealthData>{reachable: false, code: 0, contents: ''},
+        jicofoStats: <HealthData>{reachable: false, code: 0, contents: ''},
+        prosodyStatus: <HealthData>{reachable: false, code: 0, contents: ''},
+        statusFileResult: <HealthData>{reachable: false, code: 0, contents: ''},
     },
     stats: {
         jicofoParticipants: null,

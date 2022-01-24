@@ -13,15 +13,7 @@ export interface HealthReport {
     healthy: boolean;
     status: string;
     services: {
-        jicofoReachable: boolean;
-        jicofoStatusCode: number;
-        jicofoStatusContents: string;
-        jicofoStatsReachable: boolean;
-        jicofoStatsStatusCode: number;
-        prosodyReachable: boolean;
-        prosodyStatusCode: number;
-        statusFileFound: boolean;
-        statusFileContents: string;
+        [name: string]: HealthData;
     };
     stats: {
         jicofoParticipants: number;
@@ -155,15 +147,10 @@ export default class HealthCollector {
                 healthy: overallhealth,
                 status: overallstatus,
                 services: {
-                    jicofoReachable: jicofoHealth.reachable,
-                    jicofoStatusCode: jicofoHealth.code,
-                    jicofoStatusContents: jicofoHealth.contents,
-                    jicofoStatsReachable: jicofoStats.reachable,
-                    jicofoStatsStatusCode: jicofoStats.code,
-                    prosodyReachable: prosodyHealth.reachable,
-                    prosodyStatusCode: prosodyHealth.code,
-                    statusFileFound: statusFileResult.reachable,
-                    statusFileContents: statusFileResult.contents,
+                    jicofoHealth,
+                    jicofoStats,
+                    prosodyHealth,
+                    statusFileResult
                 },
                 stats: {
                     jicofoParticipants,
