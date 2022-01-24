@@ -93,7 +93,7 @@ async function healthReportHandler(req: express.Request, res: express.Response) 
     if (healthReport) {
         res.status(200);
         if (!healthReport.healthy) {
-            logger.debug('/signal/report returned 503', { report: healthReport });
+            logger.info('/signal/report returned 503', { report: healthReport });
             res.status(503);
         }
         res.send(JSON.stringify(healthReport));
@@ -110,7 +110,7 @@ async function signalHealthHandler(req: express.Request, res: express.Response) 
     if (healthReport) {
         res.status(200);
         if (!healthReport.healthy) {
-            logger.debug('/health returned 503', { report: healthReport });
+            logger.info('/health returned 503', { report: healthReport });
             if (config.Metrics) {
                 metrics.SignalHealthCheckUnhealthyCounter.inc(1);
             }
