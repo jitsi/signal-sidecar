@@ -109,19 +109,6 @@ export default class HealthCollector {
         }
     }
 
-    // returns [parsable, # participants, # conferences]
-    readStatsJSON(jstats: string): [boolean, number, number] {
-        try {
-            const parsed = JSON.parse(jstats);
-            const participants = parsed['participants'];
-            const conferences = parsed['conferences'];
-            return [true, participants, conferences];
-        } catch (err) {
-            logger.warn('failed to parse jicofo stats json', { err, json: jstats });
-            return [false, 0, 0];
-        }
-    }
-
     async updateHealthReport(): Promise<HealthReport> {
         // spawn concurrent calls
         const ccalls: Promise<HealthData>[] = [];
@@ -131,37 +118,35 @@ export default class HealthCollector {
         ccalls.push(this.readStatusFile(this.statusFilePath));
 
         return Promise.all(ccalls).then((results: HealthData[]) => {
-            const jicofoReachable = results[0].reachable;
-            const jicofoStatusCode = results[0].code;
-            const jicofoStatsReachable = results[1].reachable;
-            const jicofoStatsStatusCode = results[1].code;
-            const jicofoStatsContents = results[1].contents;
-            const prosodyHealthReachable = results[2].reachable;
-            const prosodyHealthStatusCode = results[2].code;
-            const statusFileReachable = results[3].reachable;
-            const statusFileContents = results[3].contents;
-
-            let jStats = [false, 0, 0];
-            if (jicofoStatsReachable) {
-                jStats = this.readStatsJSON(jicofoStatsContents);
+            const [jicofoHealth, jicofoStats, prosodyHealth, statusFileResult] = results;
+            let parsedStatsFlag = false;
+            let jicofoParticipants, jicofoConferences = 0;
+            try {
+                const parsedStats = JSON.parse(jicofoStats.contents);
+                jicofoParticipants = parsedStats['participants'];
+                jicofoConferences = parsedStats['conferences'];
+                parsedStatsFlag = true;
+            } catch (err) {
+                logger.warn('failed to parse jicofo stats json', { err, json: jicofoStats.contents });
             }
 
             let overallhealth = false;
             if (
-                jicofoReachable &&
-                jicofoStatusCode == 200 &&
-                jicofoStatsReachable &&
-                jicofoStatsStatusCode == 200 &&
-                prosodyHealthReachable &&
-                prosodyHealthStatusCode == 200 &&
-                statusFileReachable &&
-                jStats[0] // stats file parsed successfully
+                jicofoHealth.reachable &&
+                jicofoHealth.code == 200 &&
+                jicofoStats.reachable &&
+                jicofoStats.code == 200 &&
+                prosodyHealth.reachable &&
+                prosodyHealth.code == 200 &&
+                statusFileResult.reachable &&
+                parsedStatsFlag // stats file parsed successfully
             ) {
                 overallhealth = true;
             }
 
-            let overallstatus = statusFileContents;
-            if (jStats[1] > this.participantMax) {
+            let overallstatus = statusFileResult.contents;
+            if (jicofoParticipants > this.participantMax) {
+                // TODO: log something here
                 overallstatus = 'drain';
             }
 
@@ -169,18 +154,18 @@ export default class HealthCollector {
                 healthy: overallhealth,
                 status: overallstatus,
                 services: {
-                    jicofoReachable: jicofoReachable,
-                    jicofoStatusCode: jicofoStatusCode,
-                    jicofoStatsReachable: jicofoStatsReachable,
-                    jicofoStatsStatusCode: jicofoStatsStatusCode,
-                    prosodyReachable: prosodyHealthReachable,
-                    prosodyStatusCode: prosodyHealthStatusCode,
-                    statusFileFound: statusFileReachable,
-                    statusFileContents: statusFileContents,
+                    jicofoReachable: jicofoHealth.reachable,
+                    jicofoStatusCode: jicofoHealth.code,
+                    jicofoStatsReachable: jicofoStats.reachable,
+                    jicofoStatsStatusCode: jicofoStats.code,
+                    prosodyReachable: prosodyHealth.reachable,
+                    prosodyStatusCode: prosodyHealth.code,
+                    statusFileFound: statusFileResult.reachable,
+                    statusFileContents: statusFileResult.contents,
                 },
                 stats: {
-                    jicofoParticipants: jStats[1],
-                    jicofoConferences: jStats[2],
+                    jicofoParticipants,
+                    jicofoConferences,
                 },
             };
 
