@@ -13,7 +13,7 @@ let lastPollCheckTime: number = new Date().valueOf();
 let currentPollCount = 0;
 const pollCheckDurationSeconds = 3600;
 const idealPollCount = pollCheckDurationSeconds / config.PollingInterval;
-logger.info('initalizing health polling counter', { pollCheckDurationSeconds, idealPollCount });
+logger.info('initalizing health polling counter', { pollingDuration: pollCheckDurationSeconds, pollingTarget: idealPollCount });
 
 function checkPollCounter() {
     const secondsElapsed: number = (new Date().valueOf() - lastPollCheckTime) * 1000;
