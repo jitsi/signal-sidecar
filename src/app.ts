@@ -9,24 +9,24 @@ logger.info('signal-sidecar startup', { config });
 
 /////////////////////////
 // health polling counter
-let lastCounterCheckTime: number = new Date().valueOf();
+let lastPollCheckTime: number = new Date().valueOf();
 let currentPollCount = 0;
-const counterCheckSeconds = 3600;
-const idealPollCount = counterCheckSeconds / config.PollingInterval;
-logger.info('initalizing health polling counter', { counterCheckSeconds });
+const pollCheckDurationSeconds = 3600;
+const idealPollCount = pollCheckDurationSeconds / config.PollingInterval;
+logger.info('initalizing health polling counter', { pollCheckDurationSeconds, idealPollCount });
 
 function checkPollCounter() {
-    const secondsElapsed: number = (new Date().valueOf() - lastCounterCheckTime) * 1000;
-    if (secondsElapsed > counterCheckSeconds) {
+    const secondsElapsed: number = (new Date().valueOf() - lastPollCheckTime) * 1000;
+    if (secondsElapsed > pollCheckDurationSeconds) {
         logger.info(
             'attempted %d health checks in %d seconds; target is %d checks every %d seconds.',
             currentPollCount,
             secondsElapsed,
             idealPollCount,
-            counterCheckSeconds,
+            pollCheckDurationSeconds,
         );
         logger.info('current health report', { report: healthReport });
-        lastCounterCheckTime = new Date().valueOf();
+        lastPollCheckTime = new Date().valueOf();
         currentPollCount = 0;
     }
     currentPollCount++;
