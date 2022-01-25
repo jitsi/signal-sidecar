@@ -167,13 +167,16 @@ export default class HealthCollector {
 
         let parsedStatsFlag = false;
         let jicofoParticipants: number, jicofoConferences: number;
-        try {
-            const parsedStats = JSON.parse(jicofoStats.contents);
-            jicofoParticipants = parsedStats['participants'];
-            jicofoConferences = parsedStats['conferences'];
-            parsedStatsFlag = true;
-        } catch (err) {
-            logger.warn('failed to parse jicofo stats json', { err, json: jicofoStats.contents });
+
+        if (jicofoStats.reachable) {
+            try {
+                const parsedStats = JSON.parse(jicofoStats.contents);
+                jicofoParticipants = parsedStats['participants'];
+                jicofoConferences = parsedStats['conferences'];
+                parsedStatsFlag = true;
+            } catch (err) {
+                logger.warn('failed to parse jicofo stats json', { err, json: jicofoStats.contents });
+            }
         }
 
         let overallhealth = false;
@@ -192,7 +195,10 @@ export default class HealthCollector {
 
         let overallstatus = statusFileResult.contents;
         if (jicofoParticipants > this.participantMax) {
-            // TODO: log something here
+            logger.info('signal-sidecar set shard to DRAIN due to too many participants', {
+                participants: jicofoParticipants,
+                maxParticipants: this.participantMax,
+            });
             overallstatus = 'drain';
         }
 
