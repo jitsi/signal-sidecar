@@ -22,14 +22,16 @@ const healthCollector = new HealthCollector({
 const initHealthReport = healthCollector.initHealthReport();
 let healthReport = initHealthReport;
 
-let pollHealthy = true; // suppress state switch log on restart
+let pollHealthy = true; // suppress state change log on restart
 
 async function pollForHealth() {
     logger.debug('entering pollForHealth', { report: healthReport });
     try {
         healthReport = await healthCollector.updateHealthReport();
         if (!pollHealthy && healthReport.healthy) {
-            logger.info('signal node switched from unhealthy to healthy');
+            logger.info('signal node state changed from unhealthy to healthy');
+        } else if (pollHealthy && !healthReport.healthy) {
+            logger.info('signal node state changed from healthy to unhealthy');
         }
         pollHealthy = healthReport.healthy;
     } catch (err) {
@@ -114,7 +116,7 @@ async function censusReportHandler(req: express.Request, res: express.Response) 
         res.status(200);
         res.send(JSON.stringify(censusReport));
     } else {
-        logger.warn('census report requested and missing');
+        logger.warn('/signal/census returned 500 due to no censusReport');
         res.sendStatus(500);
     }
 }
@@ -163,5 +165,5 @@ if (config.Metrics) {
 }
 
 app.listen(config.HTTPServerPort, () => {
-    logger.info(`signal-sidecar listening on :${config.HTTPServerPort}`);
+    logger.info(`signal-sidecar started and listening on :${config.HTTPServerPort}`);
 });
