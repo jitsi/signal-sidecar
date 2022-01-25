@@ -67,7 +67,7 @@ export default class HealthCollector {
     }
 
     //returns an empty unhealthy report for use starting up
-    initHealthReport() {
+    initHealthReport(): HealthReport {
         return <HealthReport>{
             healthy: false,
             status: 'unknown',
@@ -89,8 +89,8 @@ export default class HealthCollector {
         };
     }
 
-    initHealthData() {
-        return <HealthData>{reachable: false, code: 0, contents: ''};
+    initHealthData(): HealthData {
+        return <HealthData>{ reachable: false, code: 0, contents: '' };
     }
 
     async checkHealthHttp(url: string, method = 'GET'): Promise<HealthData> {
@@ -134,20 +134,20 @@ export default class HealthCollector {
         }
         return <StatusFileData>{
             readable,
-            contents
+            contents,
         };
     }
     unsettleStatusFile(item: PromiseSettledResult<StatusFileData>): StatusFileData {
         if (item.status != 'fulfilled') {
-            logger.warn('unsettled status file promise',{ item });
-            return <StatusFileData>{readable: false};
+            logger.warn('unsettled status file promise', { item });
+            return <StatusFileData>{ readable: false };
         } else {
             return <StatusFileData>item.value;
         }
     }
     unsettleHealthData(item: PromiseSettledResult<HealthData>): HealthData {
         if (item.status != 'fulfilled') {
-            logger.warn('unsettled health data promise',{ item });
+            logger.warn('unsettled health data promise', { item });
             return this.initHealthData();
         } else {
             return <HealthData>item.value;
@@ -159,14 +159,14 @@ export default class HealthCollector {
             this.checkHealthHttp(this.jicofoHealthUrl),
             this.checkHealthHttp(this.jicofoStatsUrl),
             this.checkHealthHttp(this.prosodyHealthUrl),
-            this.readStatusFile(this.statusFilePath)
+            this.readStatusFile(this.statusFilePath),
         ]);
         //remove statusFileResult, would prefer to use .pop here but typescript doesn't likey
-        const [statusFileResult] = settledResult.splice(3,1).map(this.unsettleStatusFile);        
+        const [statusFileResult] = settledResult.splice(3, 1).map(this.unsettleStatusFile);
         const [jicofoHealth, jicofoStats, prosodyHealth] = settledResult.map(this.unsettleHealthData);
 
         let parsedStatsFlag = false;
-        let jicofoParticipants: number, jicofoConferences:number;
+        let jicofoParticipants: number, jicofoConferences: number;
         try {
             const parsedStats = JSON.parse(jicofoStats.contents);
             jicofoParticipants = parsedStats['participants'];

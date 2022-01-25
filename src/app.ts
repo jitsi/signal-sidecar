@@ -1,15 +1,15 @@
 import config from './config';
 import express from 'express';
 import logger from './logger';
-import HealthCollector, { HealthReport, HealthCollectorOptions } from './health_collector';
-import CensusCollector, { CensusReport, CensusCollectorOptions } from './census_collector';
+import HealthCollector from './health_collector';
+import CensusCollector from './census_collector';
 import metrics from './metrics';
 
 logger.info('signal-sidecar startup', { config });
 
 /////////////////////////
 // health polling loop
-const healthCollectorOptions: HealthCollectorOptions = {
+const healthCollector = new HealthCollector({
     jicofoHealthUrl: config.JicofoOrig + '/about/health',
     jicofoStatsUrl: config.JicofoOrig + '/stats',
     prosodyHealthUrl: config.ProsodyOrig + '/http-bind',
@@ -17,12 +17,11 @@ const healthCollectorOptions: HealthCollectorOptions = {
     participantMax: config.ParticipantMax,
     healthPollingInterval: config.PollingInterval,
     collectMetrics: config.Metrics,
-};
-const healthCollector = new HealthCollector(healthCollectorOptions);
+});
 
-const initHealthReport = healthCollector.initHealthReport()
+const initHealthReport = healthCollector.initHealthReport();
 
-let healthReport: HealthReport = initHealthReport;
+let healthReport = initHealthReport;
 let pollHealthy = false;
 
 async function pollForHealth() {
@@ -37,24 +36,22 @@ async function pollForHealth() {
         logger.error('pollForHealth error', { err });
         healthReport = initHealthReport;
     }
-    setTimeout(pollForHealth, healthCollectorOptions.healthPollingInterval * 1000);
+    setTimeout(pollForHealth, config.PollingInterval * 1000);
 }
 pollForHealth();
 
 /////////////////////////
 // census polling loop
-const censusCollectorOptions: CensusCollectorOptions = {
+const censusCollector = new CensusCollector({
     prosodyCensusUrl: config.ProsodyOrig + '/room-census',
     censusHost: config.CensusHost,
     censusPollingInterval: config.PollingInterval,
     collectMetrics: config.Metrics,
-};
-const censusCollector = new CensusCollector(censusCollectorOptions);
+});
 
-const initCensusReport = <CensusReport>{
-    room_census: [],
-};
-let censusReport: CensusReport = initCensusReport;
+const initCensusReport = censusCollector.initCensusReport();
+
+let censusReport = initCensusReport;
 
 async function pollForCensus() {
     logger.debug('entering pollForCensus', { report: censusReport });
@@ -63,7 +60,7 @@ async function pollForCensus() {
     } catch (err) {
         logger.error('pollForCensus error', { err });
     }
-    setTimeout(pollForCensus, censusCollectorOptions.censusPollingInterval * 1000);
+    setTimeout(pollForCensus, config.PollingInterval * 1000);
 }
 if (config.CensusPoll) {
     pollForCensus();
