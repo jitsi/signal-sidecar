@@ -9,12 +9,17 @@ export interface HealthData {
     contents: string;
 }
 
+export interface StatusFileData {
+    readable: boolean;
+    contents: string;
+}
 export interface HealthReport {
     healthy: boolean;
     status: string;
     services: {
         jicofoReachable: boolean;
         jicofoStatusCode: number;
+        jicofoStatusContents: string;
         jicofoStatsReachable: boolean;
         jicofoStatsStatusCode: number;
         prosodyReachable: boolean;
@@ -61,6 +66,33 @@ export default class HealthCollector {
         this.updateHealthReport = this.updateHealthReport.bind(this);
     }
 
+    //returns an empty unhealthy report for use starting up
+    initHealthReport(): HealthReport {
+        return <HealthReport>{
+            healthy: false,
+            status: 'unknown',
+            services: {
+                jicofoReachable: false,
+                jicofoStatusCode: 0,
+                jicofoStatusContents: '',
+                jicofoStatsReachable: false,
+                jicofoStatsStatusCode: 0,
+                prosodyReachable: false,
+                prosodyStatusCode: 0,
+                statusFileFound: false,
+                statusFileContents: '',
+            },
+            stats: {
+                jicofoParticipants: null,
+                jicofoConferences: null,
+            },
+        };
+    }
+
+    initHealthData(): HealthData {
+        return <HealthData>{ reachable: false, code: 0, contents: '' };
+    }
+
     async checkHealthHttp(url: string, method = 'GET'): Promise<HealthData> {
         logger.debug('health check of ' + url);
         try {
@@ -89,113 +121,118 @@ export default class HealthCollector {
         }
     }
 
-    async readStatusFile(filePath: string): Promise<HealthData> {
+    async readStatusFile(filePath: string): Promise<StatusFileData> {
         logger.debug('status file check of ' + filePath);
-
+        let readable = false;
+        let contents = '';
         try {
             const data = readFileSync(filePath, 'utf8');
-            return <HealthData>{
-                reachable: true,
-                code: 1,
-                contents: data.trim(),
-            };
+            readable = true;
+            contents = data.trim();
         } catch (err) {
             logger.warn('health_collector readStatusFile failed', { err, path: filePath });
-            return <HealthData>{
-                reachable: false,
-                code: 0,
-                contents: '',
-            };
+        }
+        return <StatusFileData>{
+            readable,
+            contents,
+        };
+    }
+    unsettleStatusFile(item: PromiseSettledResult<StatusFileData>): StatusFileData {
+        if (item.status != 'fulfilled') {
+            logger.warn('unsettled status file promise', { item });
+            return <StatusFileData>{ readable: false };
+        } else {
+            return <StatusFileData>item.value;
         }
     }
-
-    // returns [parsable, # participants, # conferences]
-    readStatsJSON(jstats: string): [boolean, number, number] {
-        try {
-            const parsed = JSON.parse(jstats);
-            const participants = parsed['participants'];
-            const conferences = parsed['conferences'];
-            return [true, participants, conferences];
-        } catch (err) {
-            logger.warn('failed to parse jicofo stats json', { err, json: jstats });
-            return [false, 0, 0];
+    unsettleHealthData(item: PromiseSettledResult<HealthData>): HealthData {
+        if (item.status != 'fulfilled') {
+            logger.warn('unsettled health data promise', { item });
+            return this.initHealthData();
+        } else {
+            return <HealthData>item.value;
         }
     }
-
     async updateHealthReport(): Promise<HealthReport> {
         // spawn concurrent calls
-        const ccalls: Promise<HealthData>[] = [];
-        ccalls.push(this.checkHealthHttp(this.jicofoHealthUrl));
-        ccalls.push(this.checkHealthHttp(this.jicofoStatsUrl));
-        ccalls.push(this.checkHealthHttp(this.prosodyHealthUrl));
-        ccalls.push(this.readStatusFile(this.statusFilePath));
+        const settledResult = await Promise.allSettled([
+            this.checkHealthHttp(this.jicofoHealthUrl),
+            this.checkHealthHttp(this.jicofoStatsUrl),
+            this.checkHealthHttp(this.prosodyHealthUrl),
+            this.readStatusFile(this.statusFilePath),
+        ]);
+        //remove statusFileResult, would prefer to use .pop here but typescript doesn't likey
+        const [statusFileResult] = settledResult.splice(3, 1).map(this.unsettleStatusFile);
+        const [jicofoHealth, jicofoStats, prosodyHealth] = settledResult.map(this.unsettleHealthData);
 
-        return Promise.all(ccalls).then((results: HealthData[]) => {
-            const jicofoReachable = results[0].reachable;
-            const jicofoStatusCode = results[0].code;
-            const jicofoStatsReachable = results[1].reachable;
-            const jicofoStatsStatusCode = results[1].code;
-            const jicofoStatsContents = results[1].contents;
-            const prosodyHealthReachable = results[2].reachable;
-            const prosodyHealthStatusCode = results[2].code;
-            const statusFileReachable = results[3].reachable;
-            const statusFileContents = results[3].contents;
+        let parsedStatsFlag = false;
+        let jicofoParticipants: number, jicofoConferences: number;
 
-            let jStats = [false, 0, 0];
-            if (jicofoStatsReachable) {
-                jStats = this.readStatsJSON(jicofoStatsContents);
+        if (jicofoStats.reachable) {
+            try {
+                const parsedStats = JSON.parse(jicofoStats.contents);
+                jicofoParticipants = parsedStats['participants'];
+                jicofoConferences = parsedStats['conferences'];
+                parsedStatsFlag = true;
+            } catch (err) {
+                logger.warn('failed to parse jicofo stats json', { err, json: jicofoStats.contents });
             }
+        }
 
-            let overallhealth = false;
-            if (
-                jicofoReachable &&
-                jicofoStatusCode == 200 &&
-                jicofoStatsReachable &&
-                jicofoStatsStatusCode == 200 &&
-                prosodyHealthReachable &&
-                prosodyHealthStatusCode == 200 &&
-                statusFileReachable &&
-                jStats[0] // stats file parsed successfully
-            ) {
-                overallhealth = true;
+        let overallhealth = false;
+        if (
+            jicofoHealth.reachable &&
+            jicofoHealth.code == 200 &&
+            jicofoStats.reachable &&
+            jicofoStats.code == 200 &&
+            prosodyHealth.reachable &&
+            prosodyHealth.code == 200 &&
+            statusFileResult.readable &&
+            parsedStatsFlag // stats file parsed successfully
+        ) {
+            overallhealth = true;
+        }
+
+        let overallstatus = statusFileResult.contents;
+        if (jicofoParticipants > this.participantMax) {
+            logger.info('signal-sidecar set shard to DRAIN due to too many participants', {
+                participants: jicofoParticipants,
+                maxParticipants: this.participantMax,
+            });
+            overallstatus = 'drain';
+        }
+
+        const report = <HealthReport>{
+            healthy: overallhealth,
+            status: overallstatus,
+            services: {
+                jicofoReachable: jicofoHealth.reachable,
+                jicofoStatusCode: jicofoHealth.code,
+                jicofoStatusContents: jicofoHealth.contents,
+                jicofoStatsReachable: jicofoStats.reachable,
+                jicofoStatsStatusCode: jicofoStats.code,
+                prosodyReachable: prosodyHealth.reachable,
+                prosodyStatusCode: prosodyHealth.code,
+                statusFileFound: statusFileResult.readable,
+                statusFileContents: statusFileResult.contents,
+            },
+            stats: {
+                jicofoParticipants,
+                jicofoConferences,
+            },
+        };
+
+        if (!overallhealth) {
+            logger.warn('updateHealthReport returned unhealthy', { report });
+            if (this.collectMetrics) {
+                metrics.SignalHealthGauge.set(0);
             }
-
-            let overallstatus = statusFileContents;
-            if (jStats[1] > this.participantMax) {
-                overallstatus = 'drain';
+        } else {
+            logger.debug('updateHealthReport return', { report });
+            if (this.collectMetrics) {
+                metrics.SignalHealthGauge.set(1);
             }
-
-            const report = <HealthReport>{
-                healthy: overallhealth,
-                status: overallstatus,
-                services: {
-                    jicofoReachable: jicofoReachable,
-                    jicofoStatusCode: jicofoStatusCode,
-                    jicofoStatsReachable: jicofoStatsReachable,
-                    jicofoStatsStatusCode: jicofoStatsStatusCode,
-                    prosodyReachable: prosodyHealthReachable,
-                    prosodyStatusCode: prosodyHealthStatusCode,
-                    statusFileFound: statusFileReachable,
-                    statusFileContents: statusFileContents,
-                },
-                stats: {
-                    jicofoParticipants: jStats[1],
-                    jicofoConferences: jStats[2],
-                },
-            };
-
-            if (!overallhealth) {
-                logger.warn('updateHealthReport returned unhealthy', { report });
-                if (this.collectMetrics) {
-                    metrics.SignalHealthGauge.set(0);
-                }
-            } else {
-                logger.debug('updateHealthReport return', { report });
-                if (this.collectMetrics) {
-                    metrics.SignalHealthGauge.set(1);
-                }
-            }
-            return report;
-        });
+        }
+        return report;
     }
 }

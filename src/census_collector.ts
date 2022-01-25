@@ -34,7 +34,9 @@ export default class CensusCollector {
         this.collectMetrics = options.collectMetrics;
         this.updateCensusReport = this.updateCensusReport.bind(this);
     }
-
+    initCensusReport(): CensusReport {
+        return <CensusReport>{ room_census: [] };
+    }
     async updateCensusReport(): Promise<CensusReport> {
         logger.debug('poll census data: ' + this.prosodyCensusUrl);
         try {

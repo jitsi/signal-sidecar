@@ -1,8 +1,8 @@
 import config from './config';
 import express from 'express';
 import logger from './logger';
-import HealthCollector, { HealthReport, HealthCollectorOptions } from './health_collector';
-import CensusCollector, { CensusReport, CensusCollectorOptions } from './census_collector';
+import HealthCollector from './health_collector';
+import CensusCollector from './census_collector';
 import metrics from './metrics';
 
 logger.info('signal-sidecar startup', { config });
@@ -33,7 +33,7 @@ function checkPollCounter() {
 
 /////////////////////////
 // health polling loop
-const healthCollectorOptions: HealthCollectorOptions = {
+const healthCollector = new HealthCollector({
     jicofoHealthUrl: config.JicofoOrig + '/about/health',
     jicofoStatsUrl: config.JicofoOrig + '/stats',
     prosodyHealthUrl: config.ProsodyOrig + '/http-bind',
@@ -41,29 +41,12 @@ const healthCollectorOptions: HealthCollectorOptions = {
     participantMax: config.ParticipantMax,
     healthPollingInterval: config.PollingInterval,
     collectMetrics: config.Metrics,
-};
-const healthCollector = new HealthCollector(healthCollectorOptions);
+});
 
-const initHealthReport = <HealthReport>{
-    healthy: false,
-    status: 'unknown',
-    services: {
-        jicofoReachable: false,
-        jicofoStatusCode: 0,
-        jicofoStatsReachable: false,
-        jicofoStatsStatusCode: 0,
-        prosodyReachable: false,
-        prosodyStatusCode: 0,
-        statusFileFound: false,
-        statusFileContents: '',
-    },
-    stats: {
-        jicofoParticipants: null,
-        jicofoConferences: null,
-    },
-};
-let healthReport: HealthReport = initHealthReport;
-let pollHealthy = false;
+const initHealthReport = healthCollector.initHealthReport();
+let healthReport = initHealthReport;
+
+let pollHealthy = true; // suppress state change log on restart
 
 async function pollForHealth() {
     logger.debug('entering pollForHealth', { report: healthReport });
@@ -71,31 +54,30 @@ async function pollForHealth() {
     try {
         healthReport = await healthCollector.updateHealthReport();
         if (!pollHealthy && healthReport.healthy) {
-            logger.info('signal node switched from unhealthy to healthy');
+            logger.info('signal node state changed from unhealthy to healthy');
+        } else if (pollHealthy && !healthReport.healthy) {
+            logger.info('signal node state changed from healthy to unhealthy');
         }
         pollHealthy = healthReport.healthy;
     } catch (err) {
         logger.error('pollForHealth error', { err });
         healthReport = initHealthReport;
     }
-    setTimeout(pollForHealth, healthCollectorOptions.healthPollingInterval * 1000);
+    setTimeout(pollForHealth, config.PollingInterval * 1000);
 }
 pollForHealth();
 
 /////////////////////////
 // census polling loop
-const censusCollectorOptions: CensusCollectorOptions = {
+const censusCollector = new CensusCollector({
     prosodyCensusUrl: config.ProsodyOrig + '/room-census',
     censusHost: config.CensusHost,
     censusPollingInterval: config.PollingInterval,
     collectMetrics: config.Metrics,
-};
-const censusCollector = new CensusCollector(censusCollectorOptions);
+});
 
-const initCensusReport = <CensusReport>{
-    room_census: [],
-};
-let censusReport: CensusReport = initCensusReport;
+const initCensusReport = censusCollector.initCensusReport();
+let censusReport = initCensusReport;
 
 async function pollForCensus() {
     logger.debug('entering pollForCensus', { report: censusReport });
@@ -104,7 +86,7 @@ async function pollForCensus() {
     } catch (err) {
         logger.error('pollForCensus error', { err });
     }
-    setTimeout(pollForCensus, censusCollectorOptions.censusPollingInterval * 1000);
+    setTimeout(pollForCensus, config.PollingInterval * 1000);
 }
 if (config.CensusPoll) {
     pollForCensus();
@@ -159,7 +141,7 @@ async function censusReportHandler(req: express.Request, res: express.Response) 
         res.status(200);
         res.send(JSON.stringify(censusReport));
     } else {
-        logger.warn('census report requested and missing');
+        logger.warn('/signal/census returned 500 due to no censusReport');
         res.sendStatus(500);
     }
 }
@@ -208,5 +190,5 @@ if (config.Metrics) {
 }
 
 app.listen(config.HTTPServerPort, () => {
-    logger.info(`signal-sidecar listening on :${config.HTTPServerPort}`);
+    logger.info(`signal-sidecar started and listening on :${config.HTTPServerPort}`);
 });
