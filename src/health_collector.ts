@@ -139,7 +139,7 @@ export default class HealthCollector {
     }
     unsettleStatusFile(item: PromiseSettledResult<StatusFileData>): StatusFileData {
         if (item.status != 'fulfilled') {
-            logger.warn('Unsettled status file promise',{ item });
+            logger.warn('unsettled status file promise',{ item });
             return <StatusFileData>{readable: false};
         } else {
             return <StatusFileData>item.value;
@@ -147,7 +147,7 @@ export default class HealthCollector {
     }
     unsettleHealthData(item: PromiseSettledResult<HealthData>): HealthData {
         if (item.status != 'fulfilled') {
-            logger.warn('Unsettled health data promise',{ item });
+            logger.warn('unsettled health data promise',{ item });
             return this.initHealthData();
         } else {
             return <HealthData>item.value;
