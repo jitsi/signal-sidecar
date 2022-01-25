@@ -8,6 +8,34 @@ import metrics from './metrics';
 logger.info('signal-sidecar startup', { config });
 
 /////////////////////////
+// health polling counter
+let lastPollCheckTime: number = new Date().valueOf();
+let currentPollCount = 0;
+const pollCheckDurationSeconds = 3600;
+const idealPollCount = pollCheckDurationSeconds / config.PollingInterval;
+logger.info('initalizing health polling counter', {
+    pollingDuration: pollCheckDurationSeconds,
+    pollingTarget: idealPollCount,
+});
+
+function checkPollCounter() {
+    const secondsElapsed: number = (new Date().valueOf() - lastPollCheckTime) * 1000;
+    if (secondsElapsed > pollCheckDurationSeconds) {
+        logger.info(
+            'attempted %d health checks in %d seconds; target is %d checks every %d seconds.',
+            currentPollCount,
+            secondsElapsed,
+            idealPollCount,
+            pollCheckDurationSeconds,
+        );
+        logger.info('current health report', { report: healthReport });
+        lastPollCheckTime = new Date().valueOf();
+        currentPollCount = 0;
+    }
+    currentPollCount++;
+}
+
+/////////////////////////
 // health polling loop
 const healthCollectorOptions: HealthCollectorOptions = {
     jicofoHealthUrl: config.JicofoOrig + '/about/health',
@@ -43,6 +71,7 @@ let pollHealthy = false;
 
 async function pollForHealth() {
     logger.debug('entering pollForHealth', { report: healthReport });
+    checkPollCounter();
     try {
         healthReport = await healthCollector.updateHealthReport();
         if (!pollHealthy && healthReport.healthy) {
