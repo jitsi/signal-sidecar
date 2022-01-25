@@ -20,9 +20,9 @@ const healthCollector = new HealthCollector({
 });
 
 const initHealthReport = healthCollector.initHealthReport();
-
 let healthReport = initHealthReport;
-let pollHealthy = false;
+
+let pollHealthy = true; // suppress state switch log on restart
 
 async function pollForHealth() {
     logger.debug('entering pollForHealth', { report: healthReport });
@@ -50,7 +50,6 @@ const censusCollector = new CensusCollector({
 });
 
 const initCensusReport = censusCollector.initCensusReport();
-
 let censusReport = initCensusReport;
 
 async function pollForCensus() {
