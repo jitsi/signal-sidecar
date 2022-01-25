@@ -19,18 +19,10 @@ logger.info('initalizing health polling counter', {
 });
 
 function checkPollCounter() {
-    const secondsElapsed: number = (new Date().valueOf() - lastPollCheckTime) * 1000;
+    const secondsElapsed: number = (new Date().valueOf() - lastPollCheckTime) / 1000;
     if (secondsElapsed > pollCheckDurationSeconds) {
         logger.info(
-            'attempted ' +
-                currentPollCount +
-                ' health checks in ' +
-                secondsElapsed +
-                'seconds; target is ' +
-                idealPollCount +
-                ' checks every ' +
-                pollCheckDurationSeconds +
-                'seconds',
+            `attempted ${currentPollCount} health checks in ${secondsElapsed} seconds; target is ${idealPollCount} checks every ${pollCheckDurationSeconds} seconds`,
         );
         logger.info('current health report', { report: healthReport });
         lastPollCheckTime = new Date().valueOf();
