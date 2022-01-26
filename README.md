@@ -30,8 +30,13 @@ plugin and reporting room census data as well.
 * `PARTIPANT_MAX`: report node in drain state with > this # participants [5000]
 * `CENSUS_POLL`: boolean indicating whether to poll census [false]
 * `CENSUS_HOST`: conference host name for census
+* `WEIGHT_PARTICIPANTS`: jicofo participants ratchet down TCP agent weight [0]
 * `METRICS`: boolean indicating whether to publish prometheus metrics [true]
 * `LOG_LEVEL`: debug, info, warn, or error [info]
+
+The TCP agent returns 100% weight by default. If non-zero, then every
+`WEIGHT_PARTICIPANTS` jicofo participants will reduce the weight by 10%, with a
+floor of 10%.
 
 ## /signal/report response json
 

@@ -205,35 +205,47 @@ tcpServer.on('error', (err) => {
 
 // construct tcp agent response message
 function tcpAgentMessage(): string {
-    let message = '';
+    let message: string[] = [];
     if (config.Metrics) {
         metrics.SignalHealthCheckCounter.inc(1);
     }
     if (healthReport) {
         if (healthReport.healthy) {
-            message += 'up ';
+            message.push('up');
         } else {
-            if (config.Metrics) {
-                metrics.SignalHealthCheckUnhealthyCounter.inc(1);
-            }
-            message += 'down ';
+            message.push('down');
         }
+
         const nodeStatus = healthReport.status.toLowerCase();
         if (nodeStatus === 'ready' || nodeStatus === 'drain' || nodeStatus === 'maint') {
-            message += nodeStatus + '\n';
+            message.push(nodeStatus);
         } else {
-            message += 'drain\n';
-            logger.warn('tcp agent set drain due to an unknown status', { report: healthReport });
+            message.push('drain');
+            logger.warn(`tcp agent set drain due to an invalid status ${nodeStatus}`, { report: healthReport });
         }
-        // FUTURE: add % and maxconn
+
+        if (healthReport.stats.jicofoParticipants !== undefined) {
+            if (config.WeightParticipants != 0) {
+                // weight is scaled down by 10% per config.WeightParticipants participants, to a minimum of 10
+                let weight = Math.max(10, 100 - (Math.floor(healthReport.stats.jicofoParticipants / config.WeightParticipants) * 10));
+                message.push(`${weight}%`);
+            } else {
+                // default to 100% if not weighting
+                message.push('100%');
+            } 
+        } else {
+            // unhealthy
+            message.push('0%');
+        }
+
     } else {
         logger.warn('tcp agent returned down/drain due to missing healthReport');
-        if (config.Metrics) {
-            metrics.SignalHealthCheckUnhealthyCounter.inc(1);
-        }
-        message += 'down drain\n';
+        message = ['down', 'drain', '0%'];
     }
-    return message;
+    if (config.Metrics && message.includes('down')) {
+        metrics.SignalHealthCheckUnhealthyCounter.inc(1);
+    }
+    return message.join(' ');
 }
 
 // handle incoming TCP requests
@@ -249,7 +261,7 @@ tcpServer.on('connection', (sock) => {
     } else {
         logger.info(`${agentReport} reported to ${sock.remoteAddress}:${sock.remotePort}`);
     }
-    sock.end(`${agentReport}`);
+    sock.end(`${agentReport}\n`);
 });
 
 tcpServer.listen(config.TCPServerPort, '0.0.0.0', () => {

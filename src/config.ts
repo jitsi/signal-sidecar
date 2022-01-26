@@ -40,6 +40,10 @@ const env = envalid.cleanEnv(process.env, {
         desc: 'census conference host name',
         default: 'host.example.com',
     }),
+    WEIGHT_PARTICIPANTS: envalid.num({
+        desc: '# of jicofo participants to ratchet down haproxy weight',
+        default: 0,
+    }),
     METRICS: envalid.bool({
         desc: 'publish prometheus metrics?',
         default: true,
@@ -60,6 +64,7 @@ export default {
     ParticipantMax: env.PARTICIPANT_MAX,
     CensusPoll: env.CENSUS_POLL,
     CensusHost: env.CENSUS_HOST,
+    WeightParticipants: env.WEIGHT_PARTICIPANTS,
     Metrics: env.METRICS,
     LogLevel: env.LOG_LEVEL,
 };
