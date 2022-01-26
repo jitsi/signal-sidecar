@@ -203,19 +203,45 @@ tcpServer.on('error', (err) => {
     logger.error('tcp server error', { err });
 });
 
+// construct tcp agent response message
+function tcpAgentMessage(): string {
+    let message = '';
+    if (config.Metrics) {
+        metrics.SignalHealthCheckCounter.inc(1);
+    }
+    if (healthReport) {
+        if (healthReport.healthy) {
+            message += 'up ';
+        } else {
+            if (config.Metrics) {
+                metrics.SignalHealthCheckUnhealthyCounter.inc(1);
+            }
+            message += 'down ';
+        }
+        const nodeStatus = healthReport.status.toLowerCase();
+        if (nodeStatus === 'ready' || nodeStatus === 'drain') {
+            message += nodeStatus + '\n';
+        } else {
+            message += 'drain\n';
+            logger.warn('tcp agent set drain due to an unknown status', { report: healthReport });
+        }
+    } else {
+        logger.warn('tcp agent returned down/drain due to missing healthReport');
+        if (config.Metrics) {
+            metrics.SignalHealthCheckUnhealthyCounter.inc(1);
+        }
+        message += 'down drain\n';
+    }
+    return message;
+}
+
 // handle incoming TCP requests
 tcpServer.on('connection', (sock) => {
     sock.on('error', (err) => {
         logger.error('tcp socket error', { err });
     });
 
-    let agentReport = '';
-    if (healthReport.healthy) {
-        agentReport += 'up ';
-    } else {
-        agentReport += 'down ';
-    }
-    agentReport += healthReport.status.toLowerCase();
+    const agentReport = tcpAgentMessage();
 
     if (healthReport.healthy) {
         logger.debug(`%{agentReport} reported to ${sock.remoteAddress}:${sock.remotePort}`);
