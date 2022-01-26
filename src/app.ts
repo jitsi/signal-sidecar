@@ -231,7 +231,9 @@ function tcpAgentMessage(): string {
                 // scales node weight based on current participants vs. maximum by increments of 5%, minimum of 10%
                 const weight = Math.max(
                     10,
-                    Math.round((100 - Math.floor(healthReport.stats.jicofoParticipants / config.ParticipantMax) * 100) / 5) * 5,
+                    Math.round(
+                        (100 - Math.floor(healthReport.stats.jicofoParticipants / config.ParticipantMax) * 100) / 5,
+                    ) * 5,
                 );
                 message.push(`${weight}%`);
             } else {
