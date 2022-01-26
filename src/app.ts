@@ -4,7 +4,7 @@ import logger from './logger';
 import HealthCollector from './health_collector';
 import CensusCollector from './census_collector';
 import metrics from './metrics';
-import * as net from "net";
+import * as net from 'net';
 
 logger.info('signal-sidecar startup', { config });
 
@@ -199,13 +199,13 @@ app.listen(config.HTTPServerPort, () => {
 
 const tcpServer = net.createServer();
 
-tcpServer.on('error', err => {
+tcpServer.on('error', (err) => {
     logger.error('tcp server error', { err });
 });
 
 // handle incoming TCP requests
-tcpServer.on('connection', sock => {
-    sock.on('error', err => {
+tcpServer.on('connection', (sock) => {
+    sock.on('error', (err) => {
         logger.error('tcp socket error', { err });
     });
 
@@ -218,9 +218,9 @@ tcpServer.on('connection', sock => {
     agentReport += healthReport.status.toLowerCase();
 
     if (healthReport.healthy) {
-        logger.debug(`%{agentReport} reported to ${sock.remoteAddress}:${sock.remotePort}`)
+        logger.debug(`%{agentReport} reported to ${sock.remoteAddress}:${sock.remotePort}`);
     } else {
-        logger.info(`%{agentReport} reported to ${sock.remoteAddress}:${sock.remotePort}`)
+        logger.info(`%{agentReport} reported to ${sock.remoteAddress}:${sock.remotePort}`);
     }
     sock.end(`${agentReport}`);
 });
