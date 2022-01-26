@@ -244,9 +244,9 @@ tcpServer.on('connection', (sock) => {
     const agentReport = tcpAgentMessage();
 
     if (healthReport.healthy) {
-        logger.debug(`%{agentReport} reported to ${sock.remoteAddress}:${sock.remotePort}`);
+        logger.debug(`${agentReport} reported to ${sock.remoteAddress}:${sock.remotePort}`);
     } else {
-        logger.info(`%{agentReport} reported to ${sock.remoteAddress}:${sock.remotePort}`);
+        logger.info(`${agentReport} reported to ${sock.remoteAddress}:${sock.remotePort}`);
     }
     sock.end(`${agentReport}`);
 });
