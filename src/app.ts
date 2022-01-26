@@ -266,6 +266,7 @@ tcpServer.on('connection', (sock) => {
         logger.info(`${agentReport} reported to ${sock.remoteAddress}:${sock.remotePort}`);
     }
     sock.end(`${agentReport}\n`);
+    sock.destroy();
 });
 
 tcpServer.listen(config.TCPServerPort, '0.0.0.0', () => {
