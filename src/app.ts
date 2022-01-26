@@ -227,11 +227,11 @@ function tcpAgentMessage(): string {
         if (healthReport.stats.jicofoParticipants !== undefined) {
             if (nodeStatus === 'drain') {
                 message.push('0%');
-            } else if (config.WeightParticipants != 0) {
-                // weight is scaled down by 10% per config.WeightParticipants participants, to a minimum of 10
+            } else if (config.WeightParticipants) {
+                // scales node weight based on current participants vs. maximum, minimum of 10%
                 const weight = Math.max(
                     10,
-                    100 - Math.floor(healthReport.stats.jicofoParticipants / config.WeightParticipants) * 10,
+                    100 - Math.floor(healthReport.stats.jicofoParticipants / config.ParticipantMax) * 100,
                 );
                 message.push(`${weight}%`);
             } else {

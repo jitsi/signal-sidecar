@@ -32,6 +32,10 @@ const env = envalid.cleanEnv(process.env, {
         desc: 'report node in drain state if participants exceed this value',
         default: 5000,
     }),
+    WEIGHT_PARTICIPANTS: envalid.bool({
+        desc: 'send weight via tcp agent based on % of max partipants',
+        default: false,
+    }),
     CENSUS_POLL: envalid.bool({
         desc: 'should the room census be polled?',
         default: false,
@@ -39,10 +43,6 @@ const env = envalid.cleanEnv(process.env, {
     CENSUS_HOST: envalid.host({
         desc: 'census conference host name',
         default: 'host.example.com',
-    }),
-    WEIGHT_PARTICIPANTS: envalid.num({
-        desc: '# of jicofo participants to ratchet down haproxy weight',
-        default: 0,
     }),
     METRICS: envalid.bool({
         desc: 'publish prometheus metrics?',
