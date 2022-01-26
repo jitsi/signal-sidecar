@@ -3,7 +3,8 @@ a sidecar that reports detailed health information from a jitsi signal node.
 
 ## overview
 `signal-sidecar` collects data from `jicofo` and `prosody` and presents it in a
-format intended for consumption by devops tools that manage a Jitsi deployment. 
+format intended for consumption by devops tools that manage a Jitsi deployment.
+It includes a TCP agent intended for use with HAProxy.
 
 Reported drain status is normally based on the contents of a file located at
 `STATUS_PATH`. The sidecar will report a `DRAIN` status anytime the number of
@@ -28,7 +29,7 @@ plugin and reporting room census data as well.
 * `STATUS_PATH`: file for ready/drain/maint status [/etc/jitsi/shard-status]
 * `POLLING_INTERVAL`: number of seconds between polls [5]
 * `PARTIPANT_MAX`: report node in drain state with > this # participants [5000]
-* `WEIGHT_PARTICIPANTS`: tcp agent sends weight based on `PARTICIPANT_MAX` [false]
+* `WEIGHT_PARTICIPANTS`: send weight via TCP agent based on `PARTICIPANT_MAX` [false]
 * `CENSUS_POLL`: boolean indicating whether to poll census [false]
 * `CENSUS_HOST`: conference host name for census
 * `METRICS`: boolean indicating whether to publish prometheus metrics [true]
