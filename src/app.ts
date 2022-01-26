@@ -227,17 +227,19 @@ function tcpAgentMessage(): string {
         if (healthReport.stats.jicofoParticipants !== undefined) {
             if (config.WeightParticipants != 0) {
                 // weight is scaled down by 10% per config.WeightParticipants participants, to a minimum of 10
-                let weight = Math.max(10, 100 - (Math.floor(healthReport.stats.jicofoParticipants / config.WeightParticipants) * 10));
+                const weight = Math.max(
+                    10,
+                    100 - Math.floor(healthReport.stats.jicofoParticipants / config.WeightParticipants) * 10,
+                );
                 message.push(`${weight}%`);
             } else {
                 // default to 100% if not weighting
                 message.push('100%');
-            } 
+            }
         } else {
             // unhealthy
             message.push('0%');
         }
-
     } else {
         logger.warn('tcp agent returned down/drain due to missing healthReport');
         message = ['down', 'drain', '0%'];
