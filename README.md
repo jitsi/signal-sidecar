@@ -14,7 +14,8 @@ plugin and reporting room census data as well.
 
 ## endpoints
 
-* `/health` responds with 200 if this sidecar is reachable
+* `/health` responds with 200 if this sidecar itself is reachable
+* `/signal/health` empty response; code 200 = healthy, 500/503 = broken/unhealthy
 * `/signal/report` json report; code 200 = healthy, 500/503 = broken/unhealthy
 * `/signal/census` responds with signal node room census (optional; requires `mod_muc_census`)
 
@@ -54,6 +55,15 @@ plugin and reporting room census data as well.
     }
 }
 ```
+
+## development builds
+
+The current version has been tested with node v12.22 and npm v6.14.
+
+Before making a submission, please run the following so that it's linted properly:
+> npm install
+> npn run build
+
 ## debian build command
 
 > dpkg-buildpackage -A -rfakeroot -us -uc
