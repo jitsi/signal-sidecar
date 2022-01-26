@@ -219,12 +219,13 @@ function tcpAgentMessage(): string {
             message += 'down ';
         }
         const nodeStatus = healthReport.status.toLowerCase();
-        if (nodeStatus === 'ready' || nodeStatus === 'drain') {
+        if (nodeStatus === 'ready' || nodeStatus === 'drain' || nodeStatus === 'maint') {
             message += nodeStatus + '\n';
         } else {
             message += 'drain\n';
             logger.warn('tcp agent set drain due to an unknown status', { report: healthReport });
         }
+        // FUTURE: add % and maxconn
     } else {
         logger.warn('tcp agent returned down/drain due to missing healthReport');
         if (config.Metrics) {
