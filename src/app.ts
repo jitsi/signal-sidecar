@@ -206,22 +206,16 @@ tcpServer.on('error', err => {
 // handle incoming TCP requests
 tcpServer.on('connection', sock => {
     sock.on('error', err => {
-        if (err.code === 'ECONNRESET') { // DO NOT MERGE, TYPESCRIPT BREAKS THIS!!
-            logger.warn('tcp socket connection reset');
-        } else {
-            logger.error('tcp socket error', { err });
-        }
+        logger.error('tcp socket error', { err });
     });
 
-    // TODO: make a function for this
-    // up/down ; ready/drain/maint ; dd% ; maxconn:dd
     let agentReport = '';
     if (healthReport.healthy) {
         agentReport += 'up ';
     } else {
-        agentReport += 'down '
+        agentReport += 'down ';
     }
-    agentReport += healthReport.status.toLowerCase() + ' ';
+    agentReport += healthReport.status.toLowerCase();
 
     if (healthReport.healthy) {
         logger.debug(`%{agentReport} reported to ${sock.remoteAddress}:${sock.remotePort}`)
