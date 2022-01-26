@@ -24,7 +24,7 @@ plugin and reporting room census data as well.
 * `TCP_PORT`: TCP port for HAProxy TCP agent [6060]
 * `JICOFO_ORIG`: origin for jicofo [http://localhost:8888]
 * `PROSODY_ORIG`: origin for prosody [http://localhost:5280]
-* `STATUS_PATH`: file for ready/drain status [/etc/jitsi/shard-status]
+* `STATUS_PATH`: file for ready/drain/maint status [/etc/jitsi/shard-status]
 * `POLLING_INTERVAL`: number of seconds between polls [5]
 * `PARTIPANT_MAX`: report node in drain state with > this # participants [5000]
 * `CENSUS_POLL`: boolean indicating whether to poll census [false]
@@ -37,7 +37,7 @@ plugin and reporting room census data as well.
 ```
 {
     "healthy": [boolean],                              // overall signal node health
-    "status": [ready|drain|unknown],                   // drain state of node
+    "status": [ready|drain|maint|unknown],             // drain state of node
     "services": {
         "jicofoReachable": [boolean]                   // jicofo health http reachable
         "jicofoStatusCode": [http status or 0],        // http code from jicofo
