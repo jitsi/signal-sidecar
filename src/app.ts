@@ -4,6 +4,7 @@ import logger from './logger';
 import HealthCollector from './health_collector';
 import CensusCollector from './census_collector';
 import metrics from './metrics';
+import * as net from "net";
 
 logger.info('signal-sidecar startup', { config });
 
@@ -147,8 +148,7 @@ async function censusReportHandler(req: express.Request, res: express.Response) 
 }
 
 /////////////////////////
-// routing endpoints
-
+// http endpoints
 app.use(['/about*', '/signal*'], metrics.middleware);
 
 // health of the signal-sidecar itself
@@ -190,5 +190,47 @@ if (config.Metrics) {
 }
 
 app.listen(config.HTTPServerPort, () => {
-    logger.info(`signal-sidecar started and listening on :${config.HTTPServerPort}`);
+    logger.info(`signal-sidecar http listener started on: ${config.HTTPServerPort}`);
+});
+
+/////////////////////////
+// haproxy tcp agent listener
+// ref: https://cbonte.github.io/haproxy-dconv/1.8/configuration.html#5.2-agent-check
+
+const tcpServer = net.createServer();
+
+tcpServer.on('error', err => {
+    logger.error('tcp server error', { err });
+});
+
+// handle incoming TCP requests
+tcpServer.on('connection', sock => {
+    sock.on('error', err => {
+        if (err.code === 'ECONNRESET') { // DO NOT MERGE, TYPESCRIPT BREAKS THIS!!
+            logger.warn('tcp socket connection reset');
+        } else {
+            logger.error('tcp socket error', { err });
+        }
+    });
+
+    // TODO: make a function for this
+    // up/down ; ready/drain/maint ; dd% ; maxconn:dd
+    let agentReport = '';
+    if (healthReport.healthy) {
+        agentReport += 'up ';
+    } else {
+        agentReport += 'down '
+    }
+    agentReport += healthReport.status.toLowerCase() + ' ';
+
+    if (healthReport.healthy) {
+        logger.debug(`%{agentReport} reported to ${sock.remoteAddress}:${sock.remotePort}`)
+    } else {
+        logger.info(`%{agentReport} reported to ${sock.remoteAddress}:${sock.remotePort}`)
+    }
+    sock.end(`${agentReport}`);
+});
+
+tcpServer.listen(config.TCPServerPort, '0.0.0.0', () => {
+    logger.info(`signal-sidecar haproxy tcp listener started on: ${config.TCPServerPort}.`);
 });
