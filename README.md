@@ -21,7 +21,7 @@ plugin and reporting room census data as well.
 ## configuration
 
 * `HTTP_PORT`: port for REST calls [6000]
-* `TCP_PORT`: TCP port for HAProxy TCP mode [6060] `[TO BE IMPLEMENTED]`
+* `TCP_PORT`: TCP port for HAProxy TCP agent [6060]
 * `JICOFO_ORIG`: origin for jicofo [http://localhost:8888]
 * `PROSODY_ORIG`: origin for prosody [http://localhost:5280]
 * `STATUS_PATH`: file for ready/drain status [/etc/jitsi/shard-status]
