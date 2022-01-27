@@ -241,7 +241,7 @@ function tcpAgentMessage(): string {
                 message.push('100%');
             }
         } else {
-            logger.warn('tcp agent sent 0% due to missing jicofoParticipants', {report: healthReport });
+            logger.warn('tcp agent sent 0% due to missing jicofoParticipants', { report: healthReport });
             message.push('0%');
         }
     } else {
