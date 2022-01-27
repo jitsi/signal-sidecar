@@ -32,6 +32,10 @@ const env = envalid.cleanEnv(process.env, {
         desc: 'report node in drain state if participants exceed this value',
         default: 5000,
     }),
+    WEIGHT_PARTICIPANTS: envalid.bool({
+        desc: 'send weight via tcp agent based on % of max partipants',
+        default: false,
+    }),
     CENSUS_POLL: envalid.bool({
         desc: 'should the room census be polled?',
         default: false,
@@ -60,6 +64,7 @@ export default {
     ParticipantMax: env.PARTICIPANT_MAX,
     CensusPoll: env.CENSUS_POLL,
     CensusHost: env.CENSUS_HOST,
+    WeightParticipants: env.WEIGHT_PARTICIPANTS,
     Metrics: env.METRICS,
     LogLevel: env.LOG_LEVEL,
 };

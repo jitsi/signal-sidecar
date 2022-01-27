@@ -4,6 +4,7 @@ import logger from './logger';
 import HealthCollector from './health_collector';
 import CensusCollector from './census_collector';
 import metrics from './metrics';
+import * as net from 'net';
 
 logger.info('signal-sidecar startup', { config });
 
@@ -147,8 +148,7 @@ async function censusReportHandler(req: express.Request, res: express.Response) 
 }
 
 /////////////////////////
-// routing endpoints
-
+// http endpoints
 app.use(['/about*', '/signal*'], metrics.middleware);
 
 // health of the signal-sidecar itself
@@ -190,5 +190,87 @@ if (config.Metrics) {
 }
 
 app.listen(config.HTTPServerPort, () => {
-    logger.info(`signal-sidecar started and listening on :${config.HTTPServerPort}`);
+    logger.info(`signal-sidecar http listener started on: ${config.HTTPServerPort}`);
+});
+
+/////////////////////////
+// haproxy tcp agent listener
+// ref: https://cbonte.github.io/haproxy-dconv/1.8/configuration.html#5.2-agent-check
+
+const tcpServer = net.createServer();
+
+tcpServer.on('error', (err) => {
+    logger.error('tcp server error', { err });
+});
+
+// construct tcp agent response message
+function tcpAgentMessage(): string {
+    let message: string[] = [];
+    if (config.Metrics) {
+        metrics.SignalHealthCheckCounter.inc(1);
+    }
+    if (healthReport) {
+        if (healthReport.healthy) {
+            message.push('up');
+        } else {
+            message.push('down');
+        }
+
+        const nodeStatus = healthReport.status.toLowerCase();
+        if (nodeStatus === 'ready' || nodeStatus === 'drain' || nodeStatus === 'maint') {
+            message.push(nodeStatus);
+        } else {
+            message.push('drain');
+            logger.warn(`tcp agent set drain due to an invalid status ${nodeStatus}`, { report: healthReport });
+        }
+
+        if (healthReport.stats.jicofoParticipants !== undefined) {
+            if (nodeStatus === 'drain') {
+                message.push('0%');
+            } else if (config.WeightParticipants) {
+                // scales node weight based on current participants vs. maximum by increments of 5%, minimum of 10%
+                const weight = Math.max(
+                    10,
+                    Math.round(
+                        (100 - Math.floor(healthReport.stats.jicofoParticipants / config.ParticipantMax) * 100) / 5,
+                    ) * 5,
+                );
+                message.push(`${weight}%`);
+            } else {
+                // default to 100% if not weighting
+                message.push('100%');
+            }
+        } else {
+            logger.warn('tcp agent sent 0% due to missing jicofoParticipants', { report: healthReport });
+            message.push('0%');
+        }
+    } else {
+        logger.warn('tcp agent returned down/drain due to missing healthReport');
+        message = ['down', 'drain', '0%'];
+    }
+    if (config.Metrics && message.includes('down')) {
+        metrics.SignalHealthCheckUnhealthyCounter.inc(1);
+    }
+    return message.join(' ');
+}
+
+// handle incoming TCP requests
+tcpServer.on('connection', (sock) => {
+    sock.on('error', (err) => {
+        logger.error('tcp socket error', { err });
+    });
+
+    const agentReport = tcpAgentMessage();
+
+    if (healthReport.healthy) {
+        logger.debug(`${agentReport} reported to ${sock.remoteAddress}:${sock.remotePort}`);
+    } else {
+        logger.info(`${agentReport} reported to ${sock.remoteAddress}:${sock.remotePort}`);
+    }
+    sock.end(`${agentReport}\n`);
+    sock.destroy();
+});
+
+tcpServer.listen(config.TCPServerPort, '0.0.0.0', () => {
+    logger.info(`signal-sidecar haproxy tcp listener started on: ${config.TCPServerPort}.`);
 });
