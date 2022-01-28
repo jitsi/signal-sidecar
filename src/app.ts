@@ -23,7 +23,8 @@ function checkPollCounter() {
     const secondsElapsed: number = (new Date().valueOf() - lastPollCheckTime) / 1000;
     if (secondsElapsed > pollCheckDurationSeconds) {
         logger.info(
-            `attempted ${currentPollCount} health checks in ${secondsElapsed} seconds; target is ${idealPollCount} checks every ${pollCheckDurationSeconds} seconds`, { report: healthReport }
+            `attempted ${currentPollCount} health checks in ${secondsElapsed} seconds; target is ${idealPollCount} checks every ${pollCheckDurationSeconds} seconds`,
+            { report: healthReport },
         );
         lastPollCheckTime = new Date().valueOf();
         currentPollCount = 0;
@@ -49,7 +50,6 @@ let healthReport = initHealthReport;
 let pollHealthy = true; // suppress state change log on restart
 
 export function calculateWeight(nodeStatus: string, currentParticipants: number): string {
-
     // return 100% if weighting not configured
     if (!config.WeightParticipants) {
         return '100%';
