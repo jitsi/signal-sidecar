@@ -2,23 +2,28 @@
 a sidecar that reports detailed health information from a jitsi signal node.
 
 ## overview
-`signal-sidecar` collects data from `jicofo` and `prosody` and presents it in a
-format intended for consumption by devops tools that manage a Jitsi deployment.
-It includes a TCP agent intended for use with HAProxy.
+`signal-sidecar` collects data from a Jitsi signal node and presents it in
+for consumption by devops tools that manage a Jitsi deployment. It offers
+several REST endpoints with health, metadata, and metrics, and also runs a
+HAProxy TCP agent.
 
 Reported drain status is normally based on the contents of a file located at
 `STATUS_PATH`. The sidecar will report a `DRAIN` status anytime the number of
 `jicofo` participants exceeds `PARTICIPANT_MAX`.
 
+The HAProxy agent can optionally send a weight back that is a function of
+current `jicofo` participants vs. `PARTICIPANT_MAX`.
+
 `signal-sidecar` is capable of querying the `mod_muc_census` Jitsi Meet Prosody
 plugin and reporting room census data as well.
 
-## endpoints
+## REST endpoints
 
 * `/health` responds with 200 if this sidecar itself is reachable
 * `/signal/health` empty response; code 200 = healthy, 500/503 = broken/unhealthy
 * `/signal/report` json report; code 200 = healthy, 500/503 = broken/unhealthy
-* `/signal/census` responds with signal node room census (optional; requires `mod_muc_census`)
+* `/signal/census` census of the signal node (optional; requires `mod_muc_census` on `prosody`)
+* `/metrics` prometheus metrics (optional)
 
 ## configuration
 
