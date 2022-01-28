@@ -67,9 +67,7 @@ export function calculateWeight(nodeStatus: string, currentParticipants: number)
     // scales node weight based on current participants vs. maximum by increments of 5%, minimum of 10%
     const weight = Math.max(
         10,
-        Math.round(
-            (100 - Math.floor(currentParticipants / config.ParticipantMax) * 100) / 5,
-        ) * 5,
+        Math.round((100 - Math.floor(currentParticipants / config.ParticipantMax) * 100) / 5) * 5,
     );
     return `${weight}%`;
 }
