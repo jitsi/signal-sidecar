@@ -46,6 +46,7 @@ plugin and reporting room census data as well.
 {
     "healthy": [boolean],                              // overall signal node health
     "status": [ready|drain|maint|unknown],             // drain state of node
+    "weight": [string],                                // weight of node (0-100%)
     "services": {
         "jicofoReachable": [boolean]                   // jicofo health http reachable
         "jicofoStatusCode": [http status or 0],        // http code from jicofo
@@ -62,6 +63,12 @@ plugin and reporting room census data as well.
     }
 }
 ```
+
+When `WEIGHT_PARTICIPANTS` is not `true`, `weight` will be `0%` if the status
+is `drain` or `maint`, and `100%` otherwise. When it is `true` it will return
+a percentage based on `jicofoParticipants` vs. `PARTICIPANT_MAX`, and `0%` if
+`jicofo` stats are broken. 
+
 
 ## development builds
 

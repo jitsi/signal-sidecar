@@ -50,13 +50,13 @@ let healthReport = initHealthReport;
 let pollHealthy = true; // suppress state change log on restart
 
 export function calculateWeight(nodeStatus: string, currentParticipants: number): string {
-    // return 100% if weighting not configured
-    if (!config.WeightParticipants) {
-        return '100%';
+    if (nodeStatus === 'drain' || nodeStatus === 'maint') {
+        return '0%';
     }
 
-    if (nodeStatus === 'drain') {
-        return '0%';
+    if (!config.WeightParticipants) {
+        // return 100% if weighting not configured
+        return '100%';
     }
 
     if (currentParticipants === undefined) {
