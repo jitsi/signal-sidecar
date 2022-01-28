@@ -48,6 +48,31 @@ let healthReport = initHealthReport;
 
 let pollHealthy = true; // suppress state change log on restart
 
+export function calculateWeight(nodeStatus: string, currentParticipants: number): string {
+
+    // return 100% if weighting not configured
+    if (!config.WeightParticipants) {
+        return '100%';
+    }
+
+    if (currentParticipants !== undefined) {
+        if (nodeStatus === 'drain') {
+            return '0%';
+        } else {
+            // scales node weight based on current participants vs. maximum by increments of 5%, minimum of 10%
+            const weight = Math.max(
+                10,
+                Math.round(
+                    (100 - Math.floor(healthReport.stats.jicofoParticipants / config.ParticipantMax) * 100) / 5,
+                ) * 5,
+            );
+            return `${weight}%`;
+        }
+    }
+    logger.warn('weight set to 0% due to missing jicofoParticipants', { report: healthReport });
+    return '0%';
+}
+
 async function pollForHealth() {
     logger.debug('entering pollForHealth', { report: healthReport });
     checkPollCounter();
@@ -223,26 +248,7 @@ function tcpAgentMessage(): string {
             logger.warn(`tcp agent set drain due to an invalid status ${nodeStatus}`, { report: healthReport });
         }
 
-        if (healthReport.stats.jicofoParticipants !== undefined) {
-            if (nodeStatus === 'drain') {
-                message.push('0%');
-            } else if (config.WeightParticipants) {
-                // scales node weight based on current participants vs. maximum by increments of 5%, minimum of 10%
-                const weight = Math.max(
-                    10,
-                    Math.round(
-                        (100 - Math.floor(healthReport.stats.jicofoParticipants / config.ParticipantMax) * 100) / 5,
-                    ) * 5,
-                );
-                message.push(`${weight}%`);
-            } else {
-                // default to 100% if not weighting
-                message.push('100%');
-            }
-        } else {
-            logger.warn('tcp agent sent 0% due to missing jicofoParticipants', { report: healthReport });
-            message.push('0%');
-        }
+        message.push(calculateWeight(nodeStatus, healthReport.stats.jicofoParticipants));
     } else {
         logger.warn('tcp agent returned down/drain due to missing healthReport');
         message = ['down', 'drain', '0%'];
