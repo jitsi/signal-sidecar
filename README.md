@@ -1,4 +1,4 @@
-# signal-sidecar
+# jitsi/signal-sidecar
 a sidecar that reports detailed health information from a jitsi signal node.
 
 ## overview
