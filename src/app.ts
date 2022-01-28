@@ -23,9 +23,8 @@ function checkPollCounter() {
     const secondsElapsed: number = (new Date().valueOf() - lastPollCheckTime) / 1000;
     if (secondsElapsed > pollCheckDurationSeconds) {
         logger.info(
-            `attempted ${currentPollCount} health checks in ${secondsElapsed} seconds; target is ${idealPollCount} checks every ${pollCheckDurationSeconds} seconds`,
+            `attempted ${currentPollCount} health checks in ${secondsElapsed} seconds; target is ${idealPollCount} checks every ${pollCheckDurationSeconds} seconds`, { report: healthReport }
         );
-        logger.info('current health report', { report: healthReport });
         lastPollCheckTime = new Date().valueOf();
         currentPollCount = 0;
     }
