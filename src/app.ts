@@ -55,22 +55,23 @@ export function calculateWeight(nodeStatus: string, currentParticipants: number)
         return '100%';
     }
 
-    if (currentParticipants !== undefined) {
-        if (nodeStatus === 'drain') {
-            return '0%';
-        } else {
-            // scales node weight based on current participants vs. maximum by increments of 5%, minimum of 10%
-            const weight = Math.max(
-                10,
-                Math.round(
-                    (100 - Math.floor(healthReport.stats.jicofoParticipants / config.ParticipantMax) * 100) / 5,
-                ) * 5,
-            );
-            return `${weight}%`;
-        }
+    if (nodeStatus === 'drain') {
+        return '0%';
     }
-    logger.warn('weight set to 0% due to missing jicofoParticipants', { report: healthReport });
-    return '0%';
+
+    if (currentParticipants === undefined) {
+        logger.warn('weight set to 0% due to missing jicofoParticipants', { report: healthReport });
+        return '0%';
+    }
+
+    // scales node weight based on current participants vs. maximum by increments of 5%, minimum of 10%
+    const weight = Math.max(
+        10,
+        Math.round(
+            (100 - Math.floor(currentParticipants / config.ParticipantMax) * 100) / 5,
+        ) * 5,
+    );
+    return `${weight}%`;
 }
 
 async function pollForHealth() {
