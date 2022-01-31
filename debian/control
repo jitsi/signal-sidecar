@@ -1,10 +1,10 @@
 Source: signal-sidecar
 Maintainer: Jitsi Team <dev@jitsi.org>
-Uploaders: Emily Ivov <emcho@jitsi.org>, Scott Boone <scott.e.boone@gmail.com>
+Uploaders: Emil Ivov <emcho@jitsi.org>, Scott Boone <scott.e.boone@gmail.com>
 Section: net
 Priority: optional
 Build-Depends: npm
-Standards-Version: 0.0.1
+Standards-Version: 1.0.0
 Homepage: https://jitsi.org/meet
 Vcs-Browser: https://github.com/jitsi/signal-sidecar
 Vcs-Git: https://github.com/jitsi/signal-sidecar.git
