@@ -10,6 +10,9 @@ logger.info('signal-sidecar startup', { config });
 
 /////////////////////////
 // health polling counter
+// counts health polls, report every hour how many have been conducted and
+// current health report. this is intended as a sanity check in case
+// signal-sidecar ends up on an instance that is resource starved.
 let lastPollCheckTime: number = new Date().valueOf();
 let currentPollCount = 0;
 const pollCheckDurationSeconds = 3600;
@@ -34,6 +37,7 @@ function checkPollCounter() {
 
 /////////////////////////
 // health polling loop
+// runs the main health_collector poll against jicofo, prosody, and the status file.
 const healthCollector = new HealthCollector({
     jicofoHealthUrl: config.JicofoOrig + '/about/health',
     jicofoStatsUrl: config.JicofoOrig + '/stats',
@@ -93,6 +97,7 @@ pollForHealth();
 
 /////////////////////////
 // census polling loop
+// runs the optional prosody mod_muc_census poll with census_collector
 const censusCollector = new CensusCollector({
     prosodyCensusUrl: config.ProsodyOrig + '/room-census',
     censusHost: config.CensusHost,
@@ -117,7 +122,7 @@ if (config.CensusPoll) {
 }
 
 ////////////////////
-// express handlers
+// express REST handlers
 const app = express();
 
 async function healthReportHandler(req: express.Request, res: express.Response) {
@@ -171,7 +176,7 @@ async function censusReportHandler(req: express.Request, res: express.Response) 
 }
 
 /////////////////////////
-// http endpoints
+// http routing
 app.use(['/about*', '/signal*'], metrics.middleware);
 
 // health of the signal-sidecar itself
