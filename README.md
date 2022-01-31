@@ -2,19 +2,19 @@
 a sidecar that reports detailed health information from a jitsi signal node.
 
 ## overview
-`signal-sidecar` collects data from a Jitsi signal node and presents it in
+**signal-sidecar** collects data from a Jitsi signal node and presents it in
 for consumption by devops tools that manage a Jitsi deployment. It offers
 several REST endpoints with health, metadata, and metrics, and also runs a
 HAProxy TCP agent.
 
 Reported drain status is normally based on the contents of a file located at
 `STATUS_PATH`. The sidecar will report a `DRAIN` status anytime the number of
-`jicofo` participants exceeds `PARTICIPANT_MAX`.
+**jicofo** participants exceeds `PARTICIPANT_MAX`.
 
 The HAProxy agent can optionally send a weight back that is a function of
-current `jicofo` participants vs. `PARTICIPANT_MAX`.
+current **jicofo** participants vs. `PARTICIPANT_MAX`.
 
-`signal-sidecar` is capable of querying the
+**signal-sidecar** is capable of querying the
 [mod_muc_census jitsi-meet prosody plugin](https://github.com/jitsi/jitsi-meet/blob/master/resources/prosody-plugins/mod_muc_census.lua)
 and reporting room census data as well.
 
@@ -30,7 +30,7 @@ and reporting room census data as well.
 
 * `HTTP_PORT`: port for REST calls [6000]
 * `TCP_PORT`: TCP port for HAProxy TCP agent [6060]
-* `JICOFO_ORIG`: origin for jicofo [http://localhost:8888]
+* `JICOFO_ORIG`: origin for **jicofo** [http://localhost:8888]
 * `PROSODY_ORIG`: origin for prosody [http://localhost:5280]
 * `STATUS_PATH`: file for ready/drain/maint status [/etc/jitsi/shard-status]
 * `POLLING_INTERVAL`: number of seconds between polls [5]
@@ -65,10 +65,10 @@ and reporting room census data as well.
 }
 ```
 
-When `WEIGHT_PARTICIPANTS` is not `true`, `weight` will be `0%` if the status
-is `drain` or `maint`, and `100%` otherwise. When it is `true` it will return
-a percentage based on `jicofoParticipants` vs. `PARTICIPANT_MAX`, and `0%` if
-`jicofo` stats are broken. 
+When `WEIGHT_PARTICIPANTS` is not **true**, `weight` will be `0%` if the status
+is `drain` or `maint`, and `100%` otherwise. When **true**, it will return
+an integer percentage divisible by 5 based on `jicofoParticipants` vs.
+`PARTICIPANT_MAX`, and `0%` if **jicofo** stats are broken. 
 
 
 ## development builds
