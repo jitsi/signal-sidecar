@@ -76,8 +76,10 @@ a percentage based on `jicofoParticipants` vs. `PARTICIPANT_MAX`, and `0%` if
 The current version has been tested with node v12.22 and npm v6.14.
 
 Before making a submission, please run the following so that it's linted properly:
+```
 > npm install
 > npn run build
+```
 
 ## debian build command
 
