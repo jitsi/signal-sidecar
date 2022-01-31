@@ -2,6 +2,7 @@ import logger from './logger';
 import got from 'got';
 import { readFileSync } from 'fs';
 import metrics from './metrics';
+import { calculateWeight } from './app';
 
 export interface HealthData {
     reachable: boolean;
@@ -16,6 +17,7 @@ export interface StatusFileData {
 export interface HealthReport {
     healthy: boolean;
     status: string;
+    weight?: string;
     services: {
         jicofoReachable: boolean;
         jicofoStatusCode: number;
@@ -71,6 +73,7 @@ export default class HealthCollector {
         return <HealthReport>{
             healthy: false,
             status: 'unknown',
+            weight: '0%',
             services: {
                 jicofoReachable: false,
                 jicofoStatusCode: 0,
@@ -205,6 +208,7 @@ export default class HealthCollector {
         const report = <HealthReport>{
             healthy: overallhealth,
             status: overallstatus,
+            weight: calculateWeight(overallstatus, jicofoParticipants),
             services: {
                 jicofoReachable: jicofoHealth.reachable,
                 jicofoStatusCode: jicofoHealth.code,

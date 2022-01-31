@@ -1,4 +1,4 @@
-# signal-sidecar
+# jitsi/signal-sidecar
 a sidecar that reports detailed health information from a jitsi signal node.
 
 ## overview
@@ -14,8 +14,9 @@ Reported drain status is normally based on the contents of a file located at
 The HAProxy agent can optionally send a weight back that is a function of
 current `jicofo` participants vs. `PARTICIPANT_MAX`.
 
-`signal-sidecar` is capable of querying the `mod_muc_census` Jitsi Meet Prosody
-plugin and reporting room census data as well.
+`signal-sidecar` is capable of querying the
+[mod_muc_census jitsi-meet prosody plugin](https://github.com/jitsi/jitsi-meet/blob/master/resources/prosody-plugins/mod_muc_census.lua)
+and reporting room census data as well.
 
 ## REST endpoints
 
@@ -46,6 +47,7 @@ plugin and reporting room census data as well.
 {
     "healthy": [boolean],                              // overall signal node health
     "status": [ready|drain|maint|unknown],             // drain state of node
+    "weight": [string],                                // weight of node (0-100%)
     "services": {
         "jicofoReachable": [boolean]                   // jicofo health http reachable
         "jicofoStatusCode": [http status or 0],        // http code from jicofo
@@ -62,6 +64,12 @@ plugin and reporting room census data as well.
     }
 }
 ```
+
+When `WEIGHT_PARTICIPANTS` is not `true`, `weight` will be `0%` if the status
+is `drain` or `maint`, and `100%` otherwise. When it is `true` it will return
+a percentage based on `jicofoParticipants` vs. `PARTICIPANT_MAX`, and `0%` if
+`jicofo` stats are broken. 
+
 
 ## development builds
 
