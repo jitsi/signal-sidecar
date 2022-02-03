@@ -125,7 +125,7 @@ if (config.CensusPoll) {
 // express REST handlers
 const app = express();
 
-async function healthReportHandler(req: express.Request, res: express.Response) {
+async function signalReportHandler(req: express.Request, res: express.Response) {
     if (healthReport) {
         res.status(200);
         if (!healthReport.healthy) {
@@ -134,7 +134,7 @@ async function healthReportHandler(req: express.Request, res: express.Response) 
         }
         res.send(JSON.stringify(healthReport));
     } else {
-        logger.warn('/signal/health returned 500 due to no healthReport');
+        logger.warn('/signal/report returned 500 due to no healthReport');
         res.sendStatus(500);
     }
 }
@@ -146,7 +146,7 @@ async function signalHealthHandler(req: express.Request, res: express.Response) 
     if (healthReport) {
         res.status(200);
         if (!healthReport.healthy) {
-            logger.info('/health returned 503', { report: healthReport });
+            logger.info('/signal/health returned 503', { report: healthReport });
             if (config.Metrics) {
                 metrics.SignalHealthCheckUnhealthyCounter.inc(1);
             }
@@ -156,7 +156,7 @@ async function signalHealthHandler(req: express.Request, res: express.Response) 
             res.send('OK');
         }
     } else {
-        logger.warn('/health returned 500 due to no healthReport');
+        logger.warn('/signal/health returned 500 due to no healthReport');
         if (config.Metrics) {
             metrics.SignalHealthCheckUnhealthyCounter.inc(1);
         }
@@ -196,7 +196,7 @@ app.get(['/about/health', '/signal/health'], async (req, res, next) => {
 // detailed health report intended for internal use for load balancing
 app.get('/signal/report', async (req, res, next) => {
     try {
-        await healthReportHandler(req, res);
+        await signalReportHandler(req, res);
     } catch (err) {
         next(err);
     }
