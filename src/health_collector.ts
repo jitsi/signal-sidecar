@@ -33,6 +33,7 @@ export interface HealthReport {
         jicofoParticipants: number;
         jicofoConferences: number;
     };
+    time: Date;
 }
 
 export interface HealthCollectorOptions {
@@ -89,6 +90,7 @@ export default class HealthCollector {
                 jicofoParticipants: null,
                 jicofoConferences: null,
             },
+            time: new Date(),
         };
     }
 
@@ -224,6 +226,7 @@ export default class HealthCollector {
                 jicofoParticipants,
                 jicofoConferences,
             },
+            time: new Date(),
         };
 
         if (!overallhealth) {
