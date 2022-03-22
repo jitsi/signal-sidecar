@@ -49,9 +49,9 @@ and reporting room census data as well.
     "status": [ready|drain|maint|unknown],             // drain state of node
     "weight": [string],                                // weight of node (0-100%)
     "services": {
-        "jicofoReachable": [boolean]                   // jicofo health http reachable
+        "jicofoReachable": [boolean],                  // jicofo health http reachable
         "jicofoStatusCode": [http status or 0],        // http code from jicofo
-        "jicofoStatsReachable": [boolean]              // jicofo health http reachable
+        "jicofoStatsReachable": [boolean],             // jicofo health http reachable
         "jicofoStatusStatusCode": [http status or 0],  // http code from jicofo
         "prosodyReachable": [boolean],                 // prosody health http reachable
         "prosodyStatusCode": [http status code or 0],  // http code from prosody
@@ -59,9 +59,10 @@ and reporting room census data as well.
         "statusFileContents": [stuff],                 // contents of the status file
     },
     "stats": {
-        "jicofoParticipants": [number]                 // number of jicofo participants
-        "jicofoConferences": [number]                  // number of jicofo conferences
+        "jicofoParticipants": [number],                // number of jicofo participants
+        "jicofoConferences": [number],                 // number of jicofo conferences
     }
+    "time": [string],
 }
 ```
 
