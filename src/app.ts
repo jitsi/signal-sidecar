@@ -63,7 +63,7 @@ export function calculateWeight(nodeStatus: string, currentParticipants: number)
         return '100%';
     }
 
-    if (currentParticipants === undefined) {
+    if (currentParticipants === undefined) || (currentParticipants == null) {
         logger.warn('weight set to 0% due to missing jicofoParticipants', { report: healthReport });
         return '0%';
     }
