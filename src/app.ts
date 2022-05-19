@@ -5,7 +5,6 @@ import HealthCollector from './health_collector';
 import CensusCollector from './census_collector';
 import metrics from './metrics';
 import * as net from 'net';
-import { EnvError } from 'envalid';
 
 logger.info('signal-sidecar startup', { config });
 
