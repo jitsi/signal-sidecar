@@ -181,7 +181,12 @@ export default class HealthCollector {
                 parsedStatsFlag = true;
             } catch (err) {
                 logger.warn('failed to parse jicofo stats json', { err, json: jicofoStats.contents });
+                jicofoParticipants = 0;
+                jicofoConferences = 0;
             }
+        } else {
+            jicofoParticipants = 0;
+            jicofoConferences = 0;
         }
 
         let overallhealth = false;
