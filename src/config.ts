@@ -45,11 +45,11 @@ const env = envalid.cleanEnv(process.env, {
         default: 'host.example.com',
     }),
     HEALTH_DAMPENING_INTERVAL: envalid.num({
-        desc: 'number of seconds to dampen healthy from returning after detecting unhealthy',
+        desc: 'seconds to wait before report can go healthy after last unhealthy',
         default: 30,
     }),
     DRAIN_GRACE_INTERVAL: envalid.num({
-        desc: 'number of seconds for haproxy agent to report DRAIN before setting DOWN',
+        desc: 'seconds for haproxy agent to report DRAIN before switching to DOWN',
         default: 75,
     }),
     METRICS: envalid.bool({
