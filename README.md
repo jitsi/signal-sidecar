@@ -38,6 +38,8 @@ and reporting room census data as well.
 * `WEIGHT_PARTICIPANTS`: send weight via TCP agent based on `PARTICIPANT_MAX` [false]
 * `CENSUS_POLL`: boolean indicating whether to poll census [false]
 * `CENSUS_HOST`: conference host name for census
+* `HEALTH_DAMPENING_INTERVAL`: seconds to wait before report can go healthy [30]
+* `DRAIN_GRACE_INTERVAL`: seconds for tcp agent to report drain instead of down [75]
 * `METRICS`: boolean indicating whether to publish prometheus metrics [true]
 * `LOG_LEVEL`: debug, info, warn, or error [info]
 
@@ -71,6 +73,24 @@ is `drain` or `maint`, and `100%` otherwise. When **true**, it will return
 an integer percentage divisible by 5 based on `jicofoParticipants` vs.
 `PARTICIPANT_MAX`, and `0%` if **jicofo** stats are broken. 
 
+## flap prevention
+
+**signal-sidecar** provides two types of flap mitigation:
+
+* `HEALTH_DAMPENING_INTERVAL` can be used to prevent the REST endpoint from
+  responding with healthy immediately after the signal node is healthy. This can
+  be useful for the case where a system is under heavy load and jicofo or
+  prosody are going into and out of healthy states. **signal-sidecar** will
+  report that it is healthy after the last time a component was detected as
+  being unhealthy plus this interval.
+
+* `DRAIN_GRACE_INTERVAL` is used to cause the HAProxy TCP agent to back off from
+  marking itself as DOWN immediately upon detecting an unhealthy component on the
+  signal node. **signal-sidecar** will report DRAIN to the HAProxy from the time
+  that the signal node initially went unhealthy and only begin reporting DOWN
+  after this interval has passed.
+
+These are enabled by default and can be disabled by setting them to 0.
 
 ## development builds
 

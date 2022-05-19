@@ -76,7 +76,8 @@ export function calculateWeight(nodeStatus: string, currentParticipants: number)
     return `${weight}%`;
 }
 
-let lastTimeWentUnhealthy: number = (new Date().valueOf() - 3600000); // initalize to an hour ago
+let firstTimeWentUnhealthy: number = (new Date().valueOf() - 3600000); // init to an hour ago
+let lastTimeWentUnhealthy: number = (new Date().valueOf() - 3600000);  // init to an hour ago
 
 async function pollForHealth() {
     logger.debug('entering pollForHealth', { report: healthReport });
@@ -84,14 +85,15 @@ async function pollForHealth() {
     try {
         healthReport = await healthCollector.updateHealthReport();
         if (!healthReport.healthy) {
-            lastTimeWentUnhealthy = new Date().valueOf();
+            lastTimeWentUnhealthy = new Date().valueOf(); // track when last polled unhealthy
         } else if (lastTimeWentUnhealthy + (config.HealthDampeningInterval * 1000) < new Date().valueOf()) {
-            logger.debug('forcing unhealthy due to being in dampening period')
+            logger.debug('force unhealthy due to being in dampening period')
             healthReport.healthy = false;
         }
         if (!pollHealthy && healthReport.healthy) {
             logger.info('signal node state changed from unhealthy to healthy');
         } else if (pollHealthy && !healthReport.healthy) {
+            firstTimeWentUnhealthy = new Date().valueOf(); // track when a reported state change to unhealthy began
             logger.info('signal node state changed from healthy to unhealthy');
         }
         pollHealthy = healthReport.healthy;
@@ -233,11 +235,13 @@ app.listen(config.HTTPServerPort, () => {
 // ref: https://cbonte.github.io/haproxy-dconv/1.8/configuration.html#5.2-agent-check
 
 const tcpServer = net.createServer();
-let lastTimeWentUnhealthy: number = (new Date().valueOf() - 3600000); // initalize to an hour ago
 
 tcpServer.on('error', (err) => {
     logger.error('tcp server error', { err });
 });
+//                - time since first down. when we would have reported down but within threshhold report drain instead
+// in our grace period we are overlooking a failure and are in 'drain' instead of 'down' to the haproxy
+// trying to avoid sending a hard down to haproxy (but hard down is reported to the outside)
 
 // construct tcp agent response message
 function tcpAgentMessage(): string {
@@ -246,21 +250,27 @@ function tcpAgentMessage(): string {
         metrics.SignalHealthCheckCounter.inc(1);
     }
     if (healthReport) {
-        if (healthReport.healthy) {
+        if (!healthReport.healthy && (firstTimeWentUnhealthy + config.DrainGraceInterval < new Date().valueOf())) {
+            // we are in the grace period where the node may be unhealthy but will report drain
             message.push('up');
-        } else {
-            message.push('down');
-        }
-
-        const nodeStatus = healthReport.status.toLowerCase();
-        if (nodeStatus === 'ready' || nodeStatus === 'drain' || nodeStatus === 'maint') {
-            message.push(nodeStatus);
-        } else {
             message.push('drain');
-            logger.warn(`tcp agent set drain due to an invalid status ${nodeStatus}`, { report: healthReport });
-        }
+            message.push('0%');
+        } else {
+            if (healthReport.healthy) {
+                message.push('up');
+            } else {
+                message.push('down');
+            }
 
-        message.push(calculateWeight(nodeStatus, healthReport.stats.jicofoParticipants));
+            const nodeStatus = healthReport.status.toLowerCase();
+            if (nodeStatus === 'ready' || nodeStatus === 'drain' || nodeStatus === 'maint') {
+                message.push(nodeStatus);
+            } else {
+                message.push('drain');
+                logger.warn(`tcp agent set drain due to an invalid status ${nodeStatus}`, { report: healthReport });
+            }
+            message.push(calculateWeight(nodeStatus, healthReport.stats.jicofoParticipants));
+        }
     } else {
         logger.warn('tcp agent returned down/drain due to missing healthReport');
         message = ['down', 'drain', '0%'];

@@ -48,6 +48,10 @@ const env = envalid.cleanEnv(process.env, {
         desc: 'number of seconds to dampen healthy from returning after detecting unhealthy',
         default: 30,
     }),
+    DRAIN_GRACE_INTERVAL: envalid.num({
+        desc: 'number of seconds for haproxy agent to report DRAIN before setting DOWN',
+        default: 75,
+    }),
     METRICS: envalid.bool({
         desc: 'publish prometheus metrics?',
         default: true,
@@ -70,6 +74,7 @@ export default {
     CensusHost: env.CENSUS_HOST,
     WeightParticipants: env.WEIGHT_PARTICIPANTS,
     HealthDampeningInterval: env.HEALTH_DAMPENING_INTERVAL,
+    DrainGraceInterval: env.DRAIN_GRACE_INTERVAL,
     Metrics: env.METRICS,
     LogLevel: env.LOG_LEVEL,
 };
