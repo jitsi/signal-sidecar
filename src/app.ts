@@ -239,9 +239,6 @@ const tcpServer = net.createServer();
 tcpServer.on('error', (err) => {
     logger.error('tcp server error', { err });
 });
-//                - time since first down. when we would have reported down but within threshhold report drain instead
-// in our grace period we are overlooking a failure and are in 'drain' instead of 'down' to the haproxy
-// trying to avoid sending a hard down to haproxy (but hard down is reported to the outside)
 
 // construct tcp agent response message
 function tcpAgentMessage(): string {
