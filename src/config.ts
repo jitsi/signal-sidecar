@@ -44,6 +44,10 @@ const env = envalid.cleanEnv(process.env, {
         desc: 'census conference host name',
         default: 'host.example.com',
     }),
+    HEALTH_DAMPENING_INTERVAL: envalid.num({
+        desc: 'number of seconds to dampen healthy from returning after detecting unhealthy',
+        default: 30,
+    }),
     METRICS: envalid.bool({
         desc: 'publish prometheus metrics?',
         default: true,
@@ -65,6 +69,7 @@ export default {
     CensusPoll: env.CENSUS_POLL,
     CensusHost: env.CENSUS_HOST,
     WeightParticipants: env.WEIGHT_PARTICIPANTS,
+    HealthDampeningInterval: env.HEALTH_DAMPENING_INTERVAL,
     Metrics: env.METRICS,
     LogLevel: env.LOG_LEVEL,
 };

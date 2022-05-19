@@ -5,6 +5,7 @@ import HealthCollector from './health_collector';
 import CensusCollector from './census_collector';
 import metrics from './metrics';
 import * as net from 'net';
+import { EnvError } from 'envalid';
 
 logger.info('signal-sidecar startup', { config });
 
@@ -76,14 +77,21 @@ export function calculateWeight(nodeStatus: string, currentParticipants: number)
     return `${weight}%`;
 }
 
+let lastTimeWentUnhealthy: number = (new Date().valueOf() - 3600000); // initalize to an hour ago
+
 async function pollForHealth() {
     logger.debug('entering pollForHealth', { report: healthReport });
     checkPollCounter();
     try {
         healthReport = await healthCollector.updateHealthReport();
+        if (lastTimeWentUnhealthy + (config.HealthDampeningInterval * 1000) < new Date().valueOf()) {
+            logger.debug('forcing unhealthy due to being in dampening period')
+            healthReport.healthy = false;
+        }
         if (!pollHealthy && healthReport.healthy) {
             logger.info('signal node state changed from unhealthy to healthy');
         } else if (pollHealthy && !healthReport.healthy) {
+            lastTimeWentUnhealthy = new Date().valueOf();
             logger.info('signal node state changed from healthy to unhealthy');
         }
         pollHealthy = healthReport.healthy;
