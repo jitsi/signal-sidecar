@@ -83,14 +83,15 @@ async function pollForHealth() {
     checkPollCounter();
     try {
         healthReport = await healthCollector.updateHealthReport();
-        if (lastTimeWentUnhealthy + (config.HealthDampeningInterval * 1000) < new Date().valueOf()) {
+        if (!healthReport.healthy) {
+            lastTimeWentUnhealthy = new Date().valueOf();
+        } else if (lastTimeWentUnhealthy + (config.HealthDampeningInterval * 1000) < new Date().valueOf()) {
             logger.debug('forcing unhealthy due to being in dampening period')
             healthReport.healthy = false;
         }
         if (!pollHealthy && healthReport.healthy) {
             logger.info('signal node state changed from unhealthy to healthy');
         } else if (pollHealthy && !healthReport.healthy) {
-            lastTimeWentUnhealthy = new Date().valueOf();
             logger.info('signal node state changed from healthy to unhealthy');
         }
         pollHealthy = healthReport.healthy;
@@ -232,6 +233,7 @@ app.listen(config.HTTPServerPort, () => {
 // ref: https://cbonte.github.io/haproxy-dconv/1.8/configuration.html#5.2-agent-check
 
 const tcpServer = net.createServer();
+let lastTimeWentUnhealthy: number = (new Date().valueOf() - 3600000); // initalize to an hour ago
 
 tcpServer.on('error', (err) => {
     logger.error('tcp server error', { err });
