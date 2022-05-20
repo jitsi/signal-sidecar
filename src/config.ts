@@ -51,7 +51,7 @@ const env = envalid.cleanEnv(process.env, {
     }),
     DRAIN_GRACE_INTERVAL: envalid.num({
         desc: 'seconds for haproxy agent to report DRAIN before switching to DOWN',
-        default: 75,
+        default: 120,
     }),
     METRICS: envalid.bool({
         desc: 'publish prometheus metrics?',

@@ -265,11 +265,10 @@ function tcpAgentMessage(): string {
         metrics.SignalHealthCheckCounter.inc(1);
     }
     if (healthReport) {
-        if (!healthReport.healthy && firstTimeWentUnhealthy + config.DrainGraceInterval < new Date().valueOf()) {
+        if (!healthReport.services.jicofoHealthy && healthReport.services.prosodyHealthy && firstTimeWentUnhealthy + config.DrainGraceInterval < new Date().valueOf()) {
             // we are in the grace period where the node may be unhealthy but will report drain
-            message.push('up');
-            message.push('drain');
-            message.push('0%');
+            message = ['up', 'drain', '0%'];
+
         } else {
             if (healthReport.healthy) {
                 message.push('up');

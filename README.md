@@ -43,7 +43,7 @@ complete signal node, point the health checker at the `/signal/health` endpoint.
 * `CENSUS_POLL`: boolean indicating whether to poll census [false]
 * `CENSUS_HOST`: conference host name for census
 * `HEALTH_DAMPENING_INTERVAL`: seconds to wait before report can go healthy [30]
-* `DRAIN_GRACE_INTERVAL`: seconds for tcp agent to report drain instead of down [75]
+* `DRAIN_GRACE_INTERVAL`: seconds for tcp agent to report drain instead of down [120]
 * `METRICS`: boolean indicating whether to publish prometheus metrics [true]
 * `LOG_LEVEL`: debug, info, warn, or error [info]
 
@@ -56,10 +56,13 @@ complete signal node, point the health checker at the `/signal/health` endpoint.
     "status": [ready|drain|maint|unknown],         // drain state of node
     "weight": [string],                            // weight of node (0-100%)
     "services": {
+        "jicofoHealthy": [boolean],                // jicofo generally healthy
         "jicofoReachable": [boolean],              // jicofo health http reachable
         "jicofoStatusCode": [http status or 0],    // http code from jicofo
+        "jicofoStatusContents": [string],          // contents of jicofo status call
         "jicofoStatsReachable": [boolean],         // jicofo health http reachable
         "jicofoStatusStatusCode": [status or 0],   // http status code from jicofo
+        "prosodyHealthy": [boolean],               // prosody generally healthy
         "prosodyReachable": [boolean],             // prosody health http reachable
         "prosodyStatusCode": [status code or 0],   // http status code from prosody
         "statusFileFound": [boolean],              // was the status file found
@@ -101,13 +104,15 @@ that's returned by the TCP agent.
   be useful for the case where a system is under heavy load and jicofo or
   prosody are going into and out of healthy states. **signal-sidecar** will
   report that it is healthy after the last time a component was detected as
-  being unhealthy plus this interval.
+  being unhealthy plus this interval. Defaults to 30 seconds.
 
 * `DRAIN_GRACE_INTERVAL` is used to cause the HAProxy TCP agent to back off from
-  marking itself as DOWN immediately upon detecting an unhealthy component on the
-  signal node. **signal-sidecar** will report DRAIN to the HAProxy from the time
-  that the signal node initially went unhealthy and only begin reporting DOWN
-  after this interval has passed.
+  marking itself as DOWN immediately upon detecting jicofo as unhealthy. This gives
+  jicofo a chance to recover from load spikes if prosody continues to function.
+  **signal-sidecar** will report DRAIN to the HAProxy from the time that jicofo
+  initially went unhealthy and only begin reporting DOWN after this interval has
+  passed. This must be set higher than `HEALTH_DAMPENING_INTERVAL`, and if it is
+  not, it will be forced higher. Defaults to 2 minutes.
 
 These are enabled by default and can be disabled by setting them to 0.
 

@@ -19,11 +19,13 @@ export interface HealthReport {
     status: string;
     weight?: string;
     services: {
+        jicofoHealthy: boolean;
         jicofoReachable: boolean;
         jicofoStatusCode: number;
         jicofoStatusContents: string;
         jicofoStatsReachable: boolean;
         jicofoStatsStatusCode: number;
+        prosodyHealthy: boolean;
         prosodyReachable: boolean;
         prosodyStatusCode: number;
         statusFileFound: boolean;
@@ -76,11 +78,13 @@ export default class HealthCollector {
             status: 'unknown',
             weight: '0%',
             services: {
+                jicofoHealthy: false,
                 jicofoReachable: false,
                 jicofoStatusCode: 0,
                 jicofoStatusContents: '',
                 jicofoStatsReachable: false,
                 jicofoStatsStatusCode: 0,
+                prosodyHealthy: false,
                 prosodyReachable: false,
                 prosodyStatusCode: 0,
                 statusFileFound: false,
@@ -192,16 +196,28 @@ export default class HealthCollector {
         }
 
         let overallhealth = false;
+        let jicofoHealthy = false;
+        let prosodyHealthy = false;
+
         if (
             jicofoHealth.reachable &&
             jicofoHealth.code == 200 &&
             jicofoStats.reachable &&
-            jicofoStats.code == 200 &&
+            jicofoStats.code == 200
+        ) {
+            jicofoHealthy = true;
+        }
+
+        if (
             prosodyHealth.reachable &&
             prosodyHealth.code == 200 &&
             statusFileResult.readable &&
             parsedStatsFlag // stats file parsed successfully
         ) {
+            prosodyHealthy = true;
+        }
+
+        if (jicofoHealthy && prosodyHealthy) {
             overallhealth = true;
         }
 
@@ -219,11 +235,13 @@ export default class HealthCollector {
             status: overallstatus,
             weight: calculateWeight(overallstatus, jicofoParticipants),
             services: {
+                jicofoHealthy,
                 jicofoReachable: jicofoHealth.reachable,
                 jicofoStatusCode: jicofoHealth.code,
                 jicofoStatusContents: jicofoHealth.contents,
                 jicofoStatsReachable: jicofoStats.reachable,
                 jicofoStatsStatusCode: jicofoStats.code,
+                prosodyHealthy,
                 prosodyReachable: prosodyHealth.reachable,
                 prosodyStatusCode: prosodyHealth.code,
                 statusFileFound: statusFileResult.readable,
