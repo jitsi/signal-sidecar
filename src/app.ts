@@ -63,7 +63,7 @@ export function calculateWeight(nodeStatus: string, currentParticipants: number)
         return '100%';
     }
 
-    if ((currentParticipants === undefined) || (currentParticipants == null)) {
+    if (currentParticipants === undefined || currentParticipants == null) {
         logger.warn('weight set to 0% due to missing jicofoParticipants', { report: healthReport });
         return '0%';
     }
@@ -76,8 +76,8 @@ export function calculateWeight(nodeStatus: string, currentParticipants: number)
     return `${weight}%`;
 }
 
-let firstTimeWentUnhealthy: number = (new Date().valueOf() - 3600000); // init to an hour ago
-let lastTimeWentUnhealthy: number = (new Date().valueOf() - 3600000);  // init to an hour ago
+let firstTimeWentUnhealthy: number = new Date().valueOf() - 3600000; // init to an hour ago
+let lastTimeWentUnhealthy: number = new Date().valueOf() - 3600000; // init to an hour ago
 
 async function pollForHealth() {
     logger.debug('entering pollForHealth', { report: healthReport });
@@ -88,8 +88,8 @@ async function pollForHealth() {
         // dampen health coming back up too quickly
         if (!healthReport.healthy) {
             lastTimeWentUnhealthy = new Date().valueOf(); // track when last polled unhealthy
-        } else if (lastTimeWentUnhealthy + (config.HealthDampeningInterval * 1000) < new Date().valueOf()) {
-            logger.debug('force unhealthy due to being in dampening period')
+        } else if (lastTimeWentUnhealthy + config.HealthDampeningInterval * 1000 < new Date().valueOf()) {
+            logger.debug('force unhealthy due to being in dampening period');
             healthReport.healthy = false;
         }
         if (!pollHealthy && healthReport.healthy) {
@@ -103,7 +103,7 @@ async function pollForHealth() {
         // inject prosody census stats if we are polling the census
         const censusStats = getCensusStats();
         if (censusStats) {
-            healthReport.stats = Object.assign({}, healthReport.stats, censusStats)
+            healthReport.stats = Object.assign({}, healthReport.stats, censusStats);
         }
     } catch (err) {
         logger.error('pollForHealth error', { err });
@@ -144,9 +144,9 @@ function getCensusStats() {
         return {
             prosodyParticipants: censusReport.censusParticipantCount(),
             prosodySumSquaredParticipants: censusReport.censusSumSquaredParticipantCount(),
-        }
+        };
     }
-    return null
+    return null;
 }
 
 ////////////////////
@@ -265,7 +265,7 @@ function tcpAgentMessage(): string {
         metrics.SignalHealthCheckCounter.inc(1);
     }
     if (healthReport) {
-        if (!healthReport.healthy && (firstTimeWentUnhealthy + config.DrainGraceInterval < new Date().valueOf())) {
+        if (!healthReport.healthy && firstTimeWentUnhealthy + config.DrainGraceInterval < new Date().valueOf()) {
             // we are in the grace period where the node may be unhealthy but will report drain
             message.push('up');
             message.push('drain');

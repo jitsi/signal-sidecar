@@ -37,17 +37,17 @@ export default class CensusCollector {
         this.updateCensusReport = this.updateCensusReport.bind(this);
     }
     initCensusReport(): CensusReport {
-        return <CensusReport>{ 
+        return <CensusReport>{
             room_census: [],
             censusParticipantCount(): number {
-                let participantCount: number  = 0;
+                let participantCount = 0;
                 for (const conference of this.room_census) {
                     participantCount += conference['participants'];
                 }
                 return participantCount;
             },
             censusSumSquaredParticipantCount(): number {
-                let participantSquaredCount: number  = 0;
+                let participantSquaredCount = 0;
                 for (const conference of this.room_census) {
                     participantSquaredCount += conference['participants'] ** 2;
                 }
