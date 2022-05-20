@@ -44,7 +44,7 @@ case "$1" in
             GROUP=jitsi
         fi
 
-        CONFIG_DIR="/etc/jitsi/signal-sidecar/"
+        CONFIG_DIR="/etc/jitsi/signal-sidecar"
 
         if ! [ -f $CONFIG_DIR ]; then
             mkdir -p $CONFIG_DIR
