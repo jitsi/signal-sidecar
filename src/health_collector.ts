@@ -15,15 +15,18 @@ export interface StatusFileData {
     contents: string;
 }
 export interface HealthReport {
+    time: Date;
     healthy: boolean;
     status: string;
     weight?: string;
     services: {
+        jicofoHealthy: boolean;
         jicofoReachable: boolean;
         jicofoStatusCode: number;
         jicofoStatusContents: string;
         jicofoStatsReachable: boolean;
         jicofoStatsStatusCode: number;
+        prosodyHealthy: boolean;
         prosodyReachable: boolean;
         prosodyStatusCode: number;
         statusFileFound: boolean;
@@ -33,7 +36,6 @@ export interface HealthReport {
         jicofoParticipants: number;
         jicofoConferences: number;
     };
-    time: Date;
 }
 
 export interface HealthCollectorOptions {
@@ -72,15 +74,18 @@ export default class HealthCollector {
     //returns an empty unhealthy report for use starting up
     initHealthReport(): HealthReport {
         return <HealthReport>{
+            time: new Date(),
             healthy: false,
             status: 'unknown',
             weight: '0%',
             services: {
+                jicofoHealthy: false,
                 jicofoReachable: false,
                 jicofoStatusCode: 0,
                 jicofoStatusContents: '',
                 jicofoStatsReachable: false,
                 jicofoStatsStatusCode: 0,
+                prosodyHealthy: false,
                 prosodyReachable: false,
                 prosodyStatusCode: 0,
                 statusFileFound: false,
@@ -90,7 +95,6 @@ export default class HealthCollector {
                 jicofoParticipants: null,
                 jicofoConferences: null,
             },
-            time: new Date(),
         };
     }
 
@@ -167,7 +171,7 @@ export default class HealthCollector {
             this.readStatusFile(this.statusFilePath),
         ]);
         //remove statusFileResult, would prefer to use .pop here but typescript doesn't likey
-        const [statusFileResult] = settledResult.splice(3, 1).map(this.unsettleStatusFile);
+        const [statusFileResult] = settledResult.splice(-1).map(this.unsettleStatusFile);
         const [jicofoHealth, jicofoStats, prosodyHealth] = settledResult.map(this.unsettleHealthData);
 
         let parsedStatsFlag = false;
@@ -184,17 +188,31 @@ export default class HealthCollector {
             }
         }
 
+        // jicofo may report stats out even when it's broken; set to null to be
+        // more in alignment with reality
+        if (!jicofoHealth.reachable || jicofoHealth.code != 200 || !jicofoStats.reachable || jicofoStats.code != 200) {
+            jicofoParticipants = null;
+            jicofoConferences = null;
+        }
+
         let overallhealth = false;
+        let jicofoHealthy = false;
+        let prosodyHealthy = false;
+
+        if (jicofoHealth.reachable && jicofoHealth.code == 200 && jicofoStats.reachable && jicofoStats.code == 200) {
+            jicofoHealthy = true;
+        }
+
         if (
-            jicofoHealth.reachable &&
-            jicofoHealth.code == 200 &&
-            jicofoStats.reachable &&
-            jicofoStats.code == 200 &&
             prosodyHealth.reachable &&
             prosodyHealth.code == 200 &&
             statusFileResult.readable &&
             parsedStatsFlag // stats file parsed successfully
         ) {
+            prosodyHealthy = true;
+        }
+
+        if (jicofoHealthy && prosodyHealthy) {
             overallhealth = true;
         }
 
@@ -208,15 +226,18 @@ export default class HealthCollector {
         }
 
         const report = <HealthReport>{
+            time: new Date(),
             healthy: overallhealth,
             status: overallstatus,
             weight: calculateWeight(overallstatus, jicofoParticipants),
             services: {
+                jicofoHealthy,
                 jicofoReachable: jicofoHealth.reachable,
                 jicofoStatusCode: jicofoHealth.code,
                 jicofoStatusContents: jicofoHealth.contents,
                 jicofoStatsReachable: jicofoStats.reachable,
                 jicofoStatsStatusCode: jicofoStats.code,
+                prosodyHealthy,
                 prosodyReachable: prosodyHealth.reachable,
                 prosodyStatusCode: prosodyHealth.code,
                 statusFileFound: statusFileResult.readable,
@@ -226,7 +247,6 @@ export default class HealthCollector {
                 jicofoParticipants,
                 jicofoConferences,
             },
-            time: new Date(),
         };
 
         if (!overallhealth) {

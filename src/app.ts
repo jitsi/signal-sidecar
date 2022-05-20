@@ -63,7 +63,7 @@ export function calculateWeight(nodeStatus: string, currentParticipants: number)
         return '100%';
     }
 
-    if (currentParticipants === undefined) {
+    if (currentParticipants === undefined || currentParticipants == null) {
         logger.warn('weight set to 0% due to missing jicofoParticipants', { report: healthReport });
         return '0%';
     }
@@ -76,17 +76,38 @@ export function calculateWeight(nodeStatus: string, currentParticipants: number)
     return `${weight}%`;
 }
 
+// init flap mitigation timestamps to something meaningless
+let firstTimeWentUnhealthy: number = new Date().valueOf() - (3600000 + config.DrainGraceInterval * 1000);
+let lastTimeWentUnhealthy: number = new Date().valueOf() - (3600000 + config.HealthDampeningInterval * 1000);
+
 async function pollForHealth() {
     logger.debug('entering pollForHealth', { report: healthReport });
     checkPollCounter();
     try {
-        healthReport = await healthCollector.updateHealthReport();
-        if (!pollHealthy && healthReport.healthy) {
+        const newHealthReport = await healthCollector.updateHealthReport();
+
+        // inject prosody census stats if we are polling the census
+        const censusStats = getCensusStats();
+        if (censusStats) {
+            newHealthReport.stats = Object.assign({}, newHealthReport.stats, censusStats);
+        }
+
+        // dampen health coming back up too quickly
+        if (!newHealthReport.healthy) {
+            lastTimeWentUnhealthy = new Date().valueOf(); // track when last polled unhealthy
+        } else if (lastTimeWentUnhealthy + config.HealthDampeningInterval * 1000 >= new Date().valueOf()) {
+            logger.debug('force unhealthy to dampen flapping');
+            newHealthReport.healthy = false;
+        }
+        if (!pollHealthy && newHealthReport.healthy) {
             logger.info('signal node state changed from unhealthy to healthy');
-        } else if (pollHealthy && !healthReport.healthy) {
+        } else if (pollHealthy && !newHealthReport.healthy) {
+            firstTimeWentUnhealthy = new Date().valueOf(); // track when a reported state change to unhealthy began
             logger.info('signal node state changed from healthy to unhealthy');
         }
-        pollHealthy = healthReport.healthy;
+
+        pollHealthy = newHealthReport.healthy;
+        healthReport = newHealthReport;
     } catch (err) {
         logger.error('pollForHealth error', { err });
         healthReport = initHealthReport;
@@ -119,6 +140,16 @@ async function pollForCensus() {
 }
 if (config.CensusPoll) {
     pollForCensus();
+}
+
+function getCensusStats() {
+    if (config.CensusPoll) {
+        return {
+            prosodyParticipants: censusCollector.countCensusParticipants(censusReport),
+            prosodySumSquaredParticipants: censusCollector.countCensusSumSquaredParticipants(censusReport),
+        };
+    }
+    return null;
 }
 
 ////////////////////
@@ -237,21 +268,29 @@ function tcpAgentMessage(): string {
         metrics.SignalHealthCheckCounter.inc(1);
     }
     if (healthReport) {
-        if (healthReport.healthy) {
-            message.push('up');
+        if (
+            !healthReport.services.jicofoHealthy &&
+            healthReport.services.prosodyHealthy &&
+            firstTimeWentUnhealthy + config.DrainGraceInterval >= new Date().valueOf()
+        ) {
+            logger.debug('in drain grace period: tcp agent reported up/drain despite jicofo unhealthy');
+            message = ['up', 'drain', '0%'];
         } else {
-            message.push('down');
-        }
+            if (healthReport.healthy) {
+                message.push('up');
+            } else {
+                message.push('down');
+            }
 
-        const nodeStatus = healthReport.status.toLowerCase();
-        if (nodeStatus === 'ready' || nodeStatus === 'drain' || nodeStatus === 'maint') {
-            message.push(nodeStatus);
-        } else {
-            message.push('drain');
-            logger.warn(`tcp agent set drain due to an invalid status ${nodeStatus}`, { report: healthReport });
+            const nodeStatus = healthReport.status.toLowerCase();
+            if (nodeStatus === 'ready' || nodeStatus === 'drain' || nodeStatus === 'maint') {
+                message.push(nodeStatus);
+            } else {
+                message.push('drain');
+                logger.warn(`tcp agent set drain due to an invalid status ${nodeStatus}`, { report: healthReport });
+            }
+            message.push(calculateWeight(nodeStatus, healthReport.stats.jicofoParticipants));
         }
-
-        message.push(calculateWeight(nodeStatus, healthReport.stats.jicofoParticipants));
     } else {
         logger.warn('tcp agent returned down/drain due to missing healthReport');
         message = ['down', 'drain', '0%'];

@@ -44,6 +44,14 @@ const env = envalid.cleanEnv(process.env, {
         desc: 'census conference host name',
         default: 'host.example.com',
     }),
+    HEALTH_DAMPENING_INTERVAL: envalid.num({
+        desc: 'seconds to wait before report can go healthy after last unhealthy',
+        default: 30,
+    }),
+    DRAIN_GRACE_INTERVAL: envalid.num({
+        desc: 'seconds for haproxy agent to report DRAIN before switching to DOWN',
+        default: 120,
+    }),
     METRICS: envalid.bool({
         desc: 'publish prometheus metrics?',
         default: true,
@@ -54,7 +62,7 @@ const env = envalid.cleanEnv(process.env, {
     }),
 });
 
-export default {
+const out = {
     HTTPServerPort: env.HTTP_PORT,
     TCPServerPort: env.TCP_PORT,
     JicofoOrig: env.JICOFO_ORIG,
@@ -65,6 +73,15 @@ export default {
     CensusPoll: env.CENSUS_POLL,
     CensusHost: env.CENSUS_HOST,
     WeightParticipants: env.WEIGHT_PARTICIPANTS,
+    HealthDampeningInterval: env.HEALTH_DAMPENING_INTERVAL,
+    DrainGraceInterval: <number>env.DRAIN_GRACE_INTERVAL,
     Metrics: env.METRICS,
     LogLevel: env.LOG_LEVEL,
 };
+
+if (out.DrainGraceInterval < out.HealthDampeningInterval) {
+    out.DrainGraceInterval = out.HealthDampeningInterval + 1;
+    console.log('WARNING: DRAIN_GRACE_INTERVAL should be > HEALTH_DAMPENING_INTERVAL; setting to equal +1');
+}
+
+export default out;
