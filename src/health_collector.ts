@@ -15,6 +15,7 @@ export interface StatusFileData {
     contents: string;
 }
 export interface HealthReport {
+    time: Date;
     healthy: boolean;
     status: string;
     weight?: string;
@@ -35,7 +36,6 @@ export interface HealthReport {
         jicofoParticipants: number;
         jicofoConferences: number;
     };
-    time: Date;
 }
 
 export interface HealthCollectorOptions {
@@ -231,6 +231,7 @@ export default class HealthCollector {
         }
 
         const report = <HealthReport>{
+            time: new Date(),
             healthy: overallhealth,
             status: overallstatus,
             weight: calculateWeight(overallstatus, jicofoParticipants),
@@ -251,7 +252,6 @@ export default class HealthCollector {
                 jicofoParticipants,
                 jicofoConferences,
             },
-            time: new Date(),
         };
 
         if (!overallhealth) {
