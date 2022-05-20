@@ -28,16 +28,22 @@ export default class CensusCollector {
 
     countCensusParticipants(census_report: CensusReport): number {
         let participantCount = 0;
-        for (const conference of census_report['room_census']) {
-            participantCount += conference['participants'];
+        // mod_much_census returns {} if there are no rooms
+        if (Array.isArray(census_report['room_census'])) {
+            for (const conference of census_report['room_census']) {
+                participantCount += conference['participants'];
+            }
         }
         return participantCount;
     }
 
     countCensusSumSquaredParticipants(census_report: CensusReport): number {
         let participantSquaredCount = 0;
-        for (const conference of census_report['room_census']) {
-            participantSquaredCount += conference['participants'] ** 2;
+        // mod_much_census returns {} if there are no rooms
+        if (Array.isArray(census_report['room_census'])) {
+            for (const conference of census_report['room_census']) {
+                participantSquaredCount += conference['participants'] ** 2;
+            }
         }
         return participantSquaredCount;
     }
