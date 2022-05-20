@@ -83,28 +83,30 @@ async function pollForHealth() {
     logger.debug('entering pollForHealth', { report: healthReport });
     checkPollCounter();
     try {
-        healthReport = await healthCollector.updateHealthReport();
-
-        // dampen health coming back up too quickly
-        if (!healthReport.healthy) {
-            lastTimeWentUnhealthy = new Date().valueOf(); // track when last polled unhealthy
-        } else if (lastTimeWentUnhealthy + config.HealthDampeningInterval * 1000 >= new Date().valueOf()) {
-            logger.debug('force unhealthy to dampen flapping');
-            healthReport.healthy = false;
-        }
-        if (!pollHealthy && healthReport.healthy) {
-            logger.info('signal node state changed from unhealthy to healthy');
-        } else if (pollHealthy && !healthReport.healthy) {
-            firstTimeWentUnhealthy = new Date().valueOf(); // track when a reported state change to unhealthy began
-            logger.info('signal node state changed from healthy to unhealthy');
-        }
-        pollHealthy = healthReport.healthy;
+        let newHealthReport = await healthCollector.updateHealthReport();
 
         // inject prosody census stats if we are polling the census
         const censusStats = getCensusStats();
         if (censusStats) {
-            healthReport.stats = Object.assign({}, healthReport.stats, censusStats);
+            newHealthReport.stats = Object.assign({}, newHealthReport.stats, censusStats);
         }
+
+        // dampen health coming back up too quickly
+        if (!newHealthReport.healthy) {
+            lastTimeWentUnhealthy = new Date().valueOf(); // track when last polled unhealthy
+        } else if (lastTimeWentUnhealthy + config.HealthDampeningInterval * 1000 >= new Date().valueOf()) {
+            logger.debug('force unhealthy to dampen flapping');
+            newHealthReport.healthy = false;
+        }
+        if (!pollHealthy && newHealthReport.healthy) {
+            logger.info('signal node state changed from unhealthy to healthy');
+        } else if (pollHealthy && !newHealthReport.healthy) {
+            firstTimeWentUnhealthy = new Date().valueOf(); // track when a reported state change to unhealthy began
+            logger.info('signal node state changed from healthy to unhealthy');
+        }
+
+        pollHealthy = newHealthReport.healthy;
+        healthReport = newHealthReport;
     } catch (err) {
         logger.error('pollForHealth error', { err });
         healthReport = initHealthReport;
