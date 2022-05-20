@@ -74,6 +74,7 @@ export default class HealthCollector {
     //returns an empty unhealthy report for use starting up
     initHealthReport(): HealthReport {
         return <HealthReport>{
+            time: new Date(),
             healthy: false,
             status: 'unknown',
             weight: '0%',
@@ -94,7 +95,6 @@ export default class HealthCollector {
                 jicofoParticipants: null,
                 jicofoConferences: null,
             },
-            time: new Date(),
         };
     }
 
