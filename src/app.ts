@@ -88,8 +88,8 @@ async function pollForHealth() {
         // dampen health coming back up too quickly
         if (!healthReport.healthy) {
             lastTimeWentUnhealthy = new Date().valueOf(); // track when last polled unhealthy
-        } else if (lastTimeWentUnhealthy + config.HealthDampeningInterval * 1000 < new Date().valueOf()) {
-            logger.debug('force unhealthy due to being in dampening period');
+        } else if (lastTimeWentUnhealthy + config.HealthDampeningInterval * 1000 >= new Date().valueOf()) {
+            logger.debug('force unhealthy to dampen flapping');
             healthReport.healthy = false;
         }
         if (!pollHealthy && healthReport.healthy) {
@@ -268,9 +268,9 @@ function tcpAgentMessage(): string {
         if (
             !healthReport.services.jicofoHealthy &&
             healthReport.services.prosodyHealthy &&
-            firstTimeWentUnhealthy + config.DrainGraceInterval < new Date().valueOf()
+            firstTimeWentUnhealthy + config.DrainGraceInterval >= new Date().valueOf()
         ) {
-            // we are in the grace period where the node may be unhealthy but will report drain
+            logger.debug('in drain grace period: tcp agent reported up/drain despite jicofo unhealthy');
             message = ['up', 'drain', '0%'];
         } else {
             if (healthReport.healthy) {
