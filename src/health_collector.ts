@@ -199,12 +199,7 @@ export default class HealthCollector {
         let jicofoHealthy = false;
         let prosodyHealthy = false;
 
-        if (
-            jicofoHealth.reachable &&
-            jicofoHealth.code == 200 &&
-            jicofoStats.reachable &&
-            jicofoStats.code == 200
-        ) {
+        if (jicofoHealth.reachable && jicofoHealth.code == 200 && jicofoStats.reachable && jicofoStats.code == 200) {
             jicofoHealthy = true;
         }
 

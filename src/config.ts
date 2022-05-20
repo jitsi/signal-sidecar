@@ -1,6 +1,5 @@
 import * as dotenv from 'dotenv';
 import envalid from 'envalid';
-import logger from './logger';
 
 dotenv.config();
 
