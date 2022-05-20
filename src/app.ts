@@ -83,7 +83,7 @@ async function pollForHealth() {
     logger.debug('entering pollForHealth', { report: healthReport });
     checkPollCounter();
     try {
-        let newHealthReport = await healthCollector.updateHealthReport();
+        const newHealthReport = await healthCollector.updateHealthReport();
 
         // inject prosody census stats if we are polling the census
         const censusStats = getCensusStats();
