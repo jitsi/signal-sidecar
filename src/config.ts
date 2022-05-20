@@ -63,7 +63,6 @@ const env = envalid.cleanEnv(process.env, {
     }),
 });
 
-
 const out = {
     HTTPServerPort: env.HTTP_PORT,
     TCPServerPort: env.TCP_PORT,
@@ -76,7 +75,7 @@ const out = {
     CensusHost: env.CENSUS_HOST,
     WeightParticipants: env.WEIGHT_PARTICIPANTS,
     HealthDampeningInterval: env.HEALTH_DAMPENING_INTERVAL,
-    DrainGraceInterval: <number> env.DRAIN_GRACE_INTERVAL,
+    DrainGraceInterval: <number>env.DRAIN_GRACE_INTERVAL,
     Metrics: env.METRICS,
     LogLevel: env.LOG_LEVEL,
 };

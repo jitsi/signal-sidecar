@@ -186,12 +186,7 @@ export default class HealthCollector {
 
         // jicofo may report stats out even when it's broken; set to null to be
         // more in alignment with reality
-        if (
-            !jicofoHealth.reachable ||
-            jicofoHealth.code != 200 ||
-            !jicofoStats.reachable ||
-            jicofoStats.code != 200
-        ) {
+        if (!jicofoHealth.reachable || jicofoHealth.code != 200 || !jicofoStats.reachable || jicofoStats.code != 200) {
             jicofoParticipants = null;
             jicofoConferences = null;
         }
