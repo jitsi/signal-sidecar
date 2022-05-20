@@ -43,7 +43,6 @@ const healthCollector = new HealthCollector({
     jicofoStatsUrl: config.JicofoOrig + '/stats',
     prosodyHealthUrl: config.ProsodyOrig + '/http-bind',
     statusFilePath: config.StatusPath,
-    participantMax: config.ParticipantMax,
     healthPollingInterval: config.PollingInterval,
     collectMetrics: config.Metrics,
 });
@@ -68,9 +67,9 @@ export function calculateWeight(nodeStatus: string, currentParticipants: number)
         return '0%';
     }
 
-    // scales node weight based on current participants vs. maximum by increments of 5%, minimum of 10%
+    // scales node weight based on current participants vs. maximum by increments of 5%, minimum of 1%
     const weight = Math.max(
-        10,
+        1,
         Math.round((100 - Math.floor(currentParticipants / config.ParticipantMax) * 100) / 5) * 5,
     );
     return `${weight}%`;
@@ -162,6 +161,10 @@ async function signalReportHandler(req: express.Request, res: express.Response) 
         if (!healthReport.healthy) {
             logger.info('/signal/report returned unhealthy', { report: healthReport });
         }
+
+        // injected here so as to be consistent with what agent would respond with now
+        healthReport['agentmessage'] = tcpAgentMessage();
+
         res.send(JSON.stringify(healthReport));
     } else {
         logger.warn('/signal/report returned 500 due to no healthReport');
@@ -252,8 +255,8 @@ app.listen(config.HTTPServerPort, () => {
 });
 
 /////////////////////////
-// haproxy tcp agent listener
-// ref: https://cbonte.github.io/haproxy-dconv/1.8/configuration.html#5.2-agent-check
+// haproxy tcp agent listener for agent-check
+// ref: https://cbonte.github.io/haproxy-dconv/2.5/configuration.html#5.2-agent-check
 
 const tcpServer = net.createServer();
 
@@ -264,9 +267,6 @@ tcpServer.on('error', (err) => {
 // construct tcp agent response message
 function tcpAgentMessage(): string {
     let message: string[] = [];
-    if (config.Metrics) {
-        metrics.SignalHealthCheckCounter.inc(1);
-    }
     if (healthReport) {
         if (
             !healthReport.services.jicofoHealthy &&
@@ -289,7 +289,7 @@ function tcpAgentMessage(): string {
                 message.push('drain');
                 logger.warn(`tcp agent set drain due to an invalid status ${nodeStatus}`, { report: healthReport });
             }
-            message.push(calculateWeight(nodeStatus, healthReport.stats.jicofoParticipants));
+            message.push(healthReport.weight);
         }
     } else {
         logger.warn('tcp agent returned down/drain due to missing healthReport');
@@ -307,6 +307,9 @@ tcpServer.on('connection', (sock) => {
         logger.error('tcp socket error', { err });
     });
 
+    if (config.Metrics) {
+        metrics.SignalHealthCheckCounter.inc(1);
+    }
     const agentReport = tcpAgentMessage();
 
     if (healthReport.healthy) {
