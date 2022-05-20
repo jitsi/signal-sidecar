@@ -76,8 +76,9 @@ export function calculateWeight(nodeStatus: string, currentParticipants: number)
     return `${weight}%`;
 }
 
-let firstTimeWentUnhealthy: number = new Date().valueOf() - 3600000; // init to an hour ago
-let lastTimeWentUnhealthy: number = new Date().valueOf() - 3600000; // init to an hour ago
+// init flap mitigation timestamps to something meaningless
+let firstTimeWentUnhealthy: number = new Date().valueOf() - (3600000 + config.DrainGraceInterval * 1000);
+let lastTimeWentUnhealthy: number = new Date().valueOf() - (3600000 + config.HealthDampeningInterval * 1000);
 
 async function pollForHealth() {
     logger.debug('entering pollForHealth', { report: healthReport });
