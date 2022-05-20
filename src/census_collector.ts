@@ -10,6 +10,8 @@ export interface RoomData {
 
 export interface CensusReport {
     room_census: Array<RoomData>;
+    censusParticipantCount(): number;
+    censusSumSquaredParticipantCount(): number;
 }
 
 export interface CensusCollectorOptions {
@@ -35,7 +37,23 @@ export default class CensusCollector {
         this.updateCensusReport = this.updateCensusReport.bind(this);
     }
     initCensusReport(): CensusReport {
-        return <CensusReport>{ room_census: [] };
+        return <CensusReport>{ 
+            room_census: [],
+            censusParticipantCount(): number {
+                let participantCount: number  = 0;
+                for (const conference of this.room_census) {
+                    participantCount += conference['participants'];
+                }
+                return participantCount;
+            },
+            censusSumSquaredParticipantCount(): number {
+                let participantSquaredCount: number  = 0;
+                for (const conference of this.room_census) {
+                    participantSquaredCount += conference['participants'] ** 2;
+                }
+                return participantSquaredCount;
+            },
+        };
     }
     async updateCensusReport(): Promise<CensusReport> {
         logger.debug('poll census data: ' + this.prosodyCensusUrl);

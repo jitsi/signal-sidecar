@@ -84,6 +84,8 @@ async function pollForHealth() {
     checkPollCounter();
     try {
         healthReport = await healthCollector.updateHealthReport();
+
+        // dampen health coming back up too quickly
         if (!healthReport.healthy) {
             lastTimeWentUnhealthy = new Date().valueOf(); // track when last polled unhealthy
         } else if (lastTimeWentUnhealthy + (config.HealthDampeningInterval * 1000) < new Date().valueOf()) {
@@ -97,6 +99,12 @@ async function pollForHealth() {
             logger.info('signal node state changed from healthy to unhealthy');
         }
         pollHealthy = healthReport.healthy;
+
+        // inject prosody census stats if we are polling the census
+        const censusStats = getCensusStats();
+        if (censusStats) {
+            healthReport.stats = Object.assign({}, healthReport.stats, censusStats)
+        }
     } catch (err) {
         logger.error('pollForHealth error', { err });
         healthReport = initHealthReport;
@@ -129,6 +137,16 @@ async function pollForCensus() {
 }
 if (config.CensusPoll) {
     pollForCensus();
+}
+
+function getCensusStats() {
+    if (config.CensusPoll) {
+        return {
+            prosodyParticipants: censusReport.censusParticipantCount(),
+            prosodySumSquaredParticipants: censusReport.censusSumSquaredParticipantCount(),
+        }
+    }
+    return null
 }
 
 ////////////////////
