@@ -142,8 +142,8 @@ if (config.CensusPoll) {
 function getCensusStats() {
     if (config.CensusPoll) {
         return {
-            prosodyParticipants: censusReport.censusParticipantCount(),
-            prosodySumSquaredParticipants: censusReport.censusSumSquaredParticipantCount(),
+            prosodyParticipants: censusCollector.countCensusParticipants(censusReport),
+            prosodySumSquaredParticipants: censusCollector.countCensusSumSquaredParticipants(censusReport),
         };
     }
     return null;

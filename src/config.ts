@@ -1,5 +1,6 @@
 import * as dotenv from 'dotenv';
 import envalid from 'envalid';
+import logger from './logger';
 
 dotenv.config();
 
@@ -62,7 +63,8 @@ const env = envalid.cleanEnv(process.env, {
     }),
 });
 
-export default {
+
+const out = {
     HTTPServerPort: env.HTTP_PORT,
     TCPServerPort: env.TCP_PORT,
     JicofoOrig: env.JICOFO_ORIG,
@@ -74,7 +76,14 @@ export default {
     CensusHost: env.CENSUS_HOST,
     WeightParticipants: env.WEIGHT_PARTICIPANTS,
     HealthDampeningInterval: env.HEALTH_DAMPENING_INTERVAL,
-    DrainGraceInterval: env.DRAIN_GRACE_INTERVAL,
+    DrainGraceInterval: <number> env.DRAIN_GRACE_INTERVAL,
     Metrics: env.METRICS,
     LogLevel: env.LOG_LEVEL,
 };
+
+if (out.DrainGraceInterval < out.HealthDampeningInterval) {
+    out.DrainGraceInterval = out.HealthDampeningInterval + 1;
+    console.log('WARNING: DRAIN_GRACE_INTERVAL should be > HEALTH_DAMPENING_INTERVAL; setting to equal +1');
+}
+
+export default out;

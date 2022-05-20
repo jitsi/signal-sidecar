@@ -167,7 +167,7 @@ export default class HealthCollector {
             this.readStatusFile(this.statusFilePath),
         ]);
         //remove statusFileResult, would prefer to use .pop here but typescript doesn't likey
-        const [statusFileResult] = settledResult.splice(3, 1).map(this.unsettleStatusFile);
+        const [statusFileResult] = settledResult.splice(-1).map(this.unsettleStatusFile);
         const [jicofoHealth, jicofoStats, prosodyHealth] = settledResult.map(this.unsettleHealthData);
 
         let parsedStatsFlag = false;
@@ -181,10 +181,17 @@ export default class HealthCollector {
                 parsedStatsFlag = true;
             } catch (err) {
                 logger.warn('failed to parse jicofo stats json', { err, json: jicofoStats.contents });
-                jicofoParticipants = null;
-                jicofoConferences = null;
             }
-        } else {
+        }
+
+        // jicofo may report stats out even when it's broken; set to null to be
+        // more in alignment with reality
+        if (
+            !jicofoHealth.reachable ||
+            jicofoHealth.code != 200 ||
+            !jicofoStats.reachable ||
+            jicofoStats.code != 200
+        ) {
             jicofoParticipants = null;
             jicofoConferences = null;
         }
