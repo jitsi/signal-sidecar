@@ -96,7 +96,7 @@ async function pollForHealth() {
         if (!newHealthReport.healthy) {
             lastTimeWentUnhealthy = new Date().valueOf(); // track when last polled unhealthy
         } else if (lastTimeWentUnhealthy + config.HealthDampeningInterval * 1000 >= new Date().valueOf()) {
-            logger.debug('force unhealthy to dampen flapping');
+            logger.info('forced unhealthy; in health dampening interval'); // TODO: make this log on the first time only
             newHealthReport.healthy = false;
         }
         if (!pollHealthy && newHealthReport.healthy) {
@@ -274,7 +274,7 @@ function tcpAgentMessage(): string {
             firstTimeWentUnhealthy + config.DrainGraceInterval * 1000 >= new Date().valueOf()
         ) {
             logger.debug('in drain grace period: tcp agent reported up/drain despite jicofo unhealthy');
-            message = ['up', 'drain', '0%'];
+            message = ['up', 'drain'];
         } else {
             if (healthReport.healthy) {
                 message.push('up');
@@ -293,7 +293,7 @@ function tcpAgentMessage(): string {
         }
     } else {
         logger.warn('tcp agent returned down/drain due to missing healthReport');
-        message = ['down', 'drain', '0%'];
+        message = ['down', 'drain'];
     }
     if (config.Metrics && message.includes('down')) {
         metrics.SignalHealthCheckUnhealthyCounter.inc(1);
@@ -309,12 +309,9 @@ tcpServer.on('connection', (sock) => {
 
     const agentReport = tcpAgentMessage();
 
-    if (healthReport.healthy) {
-        logger.debug(`${agentReport} reported to ${sock.remoteAddress}:${sock.remotePort}`);
-    } else {
-        logger.info(`${agentReport} reported to ${sock.remoteAddress}:${sock.remotePort}`);
-    }
     sock.end(`${agentReport}\n`);
+    logger.debug(`${agentReport} reported to ${sock.remoteAddress}:${sock.remotePort}`);
+    // TODO: preserve this report, loger.info if the new report is different
     sock.destroy();
 });
 
