@@ -19,6 +19,7 @@ export interface HealthReport {
     healthy: boolean;
     status: string;
     weight?: string;
+    agentmessage?: string;
     services: {
         jicofoHealthy: boolean;
         jicofoReachable: boolean;
@@ -35,6 +36,8 @@ export interface HealthReport {
     stats: {
         jicofoParticipants: number;
         jicofoConferences: number;
+        prosodyParticipants?: number;
+        prosodySumSquaredParticipants?: number;
     };
 }
 
@@ -43,7 +46,6 @@ export interface HealthCollectorOptions {
     jicofoStatsUrl: string;
     prosodyHealthUrl: string;
     statusFilePath: string;
-    participantMax: number;
     healthPollingInterval: number;
     collectMetrics: boolean;
 }
@@ -53,7 +55,6 @@ export default class HealthCollector {
     private jicofoStatsUrl: string;
     private prosodyHealthUrl: string;
     private statusFilePath: string;
-    private participantMax: number;
     private requestTimeout: number;
     private requestRetryCount: number;
     private collectMetrics: boolean;
@@ -63,7 +64,6 @@ export default class HealthCollector {
         this.jicofoStatsUrl = options.jicofoStatsUrl;
         this.prosodyHealthUrl = options.prosodyHealthUrl;
         this.statusFilePath = options.statusFilePath;
-        this.participantMax = options.participantMax;
         this.requestTimeout = 3 * 1000;
         this.requestRetryCount = 2;
         this.collectMetrics = options.collectMetrics;
@@ -77,7 +77,6 @@ export default class HealthCollector {
             time: new Date(),
             healthy: false,
             status: 'unknown',
-            weight: '0%',
             services: {
                 jicofoHealthy: false,
                 jicofoReachable: false,
@@ -216,20 +215,11 @@ export default class HealthCollector {
             overallhealth = true;
         }
 
-        let overallstatus = statusFileResult.contents;
-        if (jicofoParticipants > this.participantMax) {
-            logger.info('signal-sidecar set shard to DRAIN due to too many participants', {
-                participants: jicofoParticipants,
-                maxParticipants: this.participantMax,
-            });
-            overallstatus = 'drain';
-        }
-
         const report = <HealthReport>{
             time: new Date(),
             healthy: overallhealth,
-            status: overallstatus,
-            weight: calculateWeight(overallstatus, jicofoParticipants),
+            status: statusFileResult.contents,
+            weight: calculateWeight(statusFileResult.contents, jicofoParticipants),
             services: {
                 jicofoHealthy,
                 jicofoReachable: jicofoHealth.reachable,

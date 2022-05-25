@@ -8,11 +8,12 @@ several REST endpoints with health, metadata, and metrics, and also runs a
 HAProxy TCP agent.
 
 Reported drain status is normally based on the contents of a file located at
-`STATUS_PATH`. The sidecar will report a `DRAIN` status anytime the number of
-**jicofo** participants exceeds `PARTICIPANT_MAX`.
+`STATUS_PATH`. The sidecar will also report `DRAIN` status in some cases where
+there is a malfunction.
 
-The HAProxy agent can optionally send a weight back that is a function of
-current **jicofo** participants vs. `PARTICIPANT_MAX`.
+The HAProxy agent can, using the `WEIGHT_PARTICIPANTS` flag, send a weight back
+that is a function of current **jicofo** participants vs.  `PARTICIPANT_MAX`.
+This will never go below 1%.
 
 **signal-sidecar** is capable of querying the
 [mod_muc_census jitsi-meet prosody plugin](https://github.com/jitsi/jitsi-meet/blob/master/resources/prosody-plugins/mod_muc_census.lua)
@@ -55,6 +56,7 @@ complete signal node, point the health checker at the `/signal/health` endpoint.
     "healthy": [boolean],                          // overall signal node health
     "status": [ready|drain|maint|unknown],         // drain state of node
     "weight": [string],                            // weight of node (0-100%)
+    "agentmessage" [string],                       // current tcp agent message
     "services": {
         "jicofoHealthy": [boolean],                // jicofo generally healthy
         "jicofoReachable": [boolean],              // jicofo health http reachable
