@@ -271,7 +271,7 @@ function tcpAgentMessage(): string {
         if (
             !healthReport.services.jicofoHealthy &&
             healthReport.services.prosodyHealthy &&
-            firstTimeWentUnhealthy + config.DrainGraceInterval >= new Date().valueOf()
+            firstTimeWentUnhealthy + config.DrainGraceInterval * 1000 >= new Date().valueOf()
         ) {
             logger.debug('in drain grace period: tcp agent reported up/drain despite jicofo unhealthy');
             message = ['up', 'drain', '0%'];
