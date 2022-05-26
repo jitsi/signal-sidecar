@@ -98,7 +98,6 @@ function healthReportRightNow() {
             nowHealthReport.status = 'drain';
             nowHealthReport.healthdamped = true;
         }
-        // do a thing
     }
 
     nowHealthReport.agentmessage = tcpAgentMessage(nowHealthReport);
@@ -207,8 +206,6 @@ async function signalReportHandler(req: express.Request, res: express.Response) 
             logger.info('/signal/report returned unhealthy', { report });
         }
 
-        // TODO: checkDrainGracePeriod
-
         res.send(JSON.stringify(report));
     } else {
         logger.warn('/signal/report returned 500 due to no healthReport');
@@ -223,7 +220,6 @@ async function signalHealthHandler(req: express.Request, res: express.Response) 
     if (healthReport) {
         const report = healthReportRightNow();
 
-        // TODO: checkDrainGracePeriod
         res.status(200);
         if (!report.healthy) {
             logger.info('/signal/health returned 503', { report });
