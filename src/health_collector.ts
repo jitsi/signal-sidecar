@@ -17,6 +17,7 @@ export interface StatusFileData {
 export interface HealthReport {
     time: Date;
     healthy: boolean;
+    healthdamped?: boolean;
     status: string;
     weight?: string;
     agentmessage?: string;
@@ -76,6 +77,7 @@ export default class HealthCollector {
         return <HealthReport>{
             time: new Date(),
             healthy: false,
+            healthdamped: false,
             status: 'unknown',
             services: {
                 jicofoHealthy: false,
@@ -202,22 +204,23 @@ export default class HealthCollector {
             jicofoHealthy = true;
         }
 
-        if (
-            prosodyHealth.reachable &&
-            prosodyHealth.code == 200 &&
-            statusFileResult.readable &&
-            parsedStatsFlag // stats file parsed successfully
-        ) {
+        if (prosodyHealth.reachable && prosodyHealth.code == 200) {
             prosodyHealthy = true;
         }
 
-        if (jicofoHealthy && prosodyHealthy) {
+        if (
+            jicofoHealthy &&
+            prosodyHealthy &&
+            statusFileResult.readable &&
+            parsedStatsFlag // stats file parsed successfully
+        ) {
             overallhealth = true;
         }
 
         const report = <HealthReport>{
             time: new Date(),
             healthy: overallhealth,
+            healthdamped: false,
             status: statusFileResult.contents,
             weight: calculateWeight(statusFileResult.contents, jicofoParticipants),
             services: {

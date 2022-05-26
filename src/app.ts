@@ -1,7 +1,7 @@
 import config from './config';
 import express from 'express';
 import logger from './logger';
-import HealthCollector from './health_collector';
+import HealthCollector, { HealthReport } from './health_collector';
 import CensusCollector from './census_collector';
 import metrics from './metrics';
 import * as net from 'net';
@@ -21,6 +21,8 @@ logger.info('initalizing health polling counter', {
     pollingDuration: pollCheckDurationSeconds,
     pollingTarget: idealPollCount,
 });
+
+let lastTimeWentHealthy: number;
 
 function checkPollCounter() {
     const secondsElapsed: number = (new Date().valueOf() - lastPollCheckTime) / 1000;
@@ -79,6 +81,48 @@ export function calculateWeight(nodeStatus: string, currentParticipants: number)
 let firstTimeWentUnhealthy: number = new Date().valueOf() - (3600000 + config.DrainGraceInterval * 1000);
 let lastTimeWentUnhealthy: number = new Date().valueOf() - (3600000 + config.HealthDampeningInterval * 1000);
 
+function healthReportRightNow() {
+    const nowHealthReport = <HealthReport>JSON.parse(JSON.stringify(healthReport));
+    if (nowHealthReport.healthy) {
+        // basic health report is good, now check that we're not in the health dampening interval
+        if (checkHealthDampeningPeriod()) {
+            // report unhealthy until we exit the health dampening interval
+            nowHealthReport.healthy = false;
+            nowHealthReport.healthdamped = true;
+        }
+    } else {
+        // unhealthy, check if we are in the drain grace period
+        if (checkDrainGracePeriod()) {
+            logger.debug('in drain grace period: reporting health / drain despite jicofo unhealthy');
+            nowHealthReport.healthy = true;
+            nowHealthReport.status = 'drain';
+            nowHealthReport.healthdamped = true;
+        }
+    }
+
+    nowHealthReport.agentmessage = tcpAgentMessage(nowHealthReport);
+
+    return nowHealthReport;
+}
+
+function checkHealthDampeningPeriod(): boolean {
+    // health dampening period is time enforced period after the last unhealthy check before we report healthy again
+    return lastTimeWentUnhealthy + config.HealthDampeningInterval * 1000 >= new Date().valueOf();
+}
+
+function checkDrainGracePeriod(): boolean {
+    // drain grace period is on if:
+    // we've ever been healthy and
+    // jicofo is unhealthy but otherwise all else is good and
+    // the current time is less than window ending at first failure time + grace period
+    return (
+        lastTimeWentHealthy !== undefined &&
+        !healthReport.services.jicofoHealthy &&
+        healthReport.services.prosodyHealthy &&
+        firstTimeWentUnhealthy + config.DrainGraceInterval * 1000 >= new Date().valueOf()
+    );
+}
+
 async function pollForHealth() {
     logger.debug('entering pollForHealth', { report: healthReport });
     checkPollCounter();
@@ -92,11 +136,10 @@ async function pollForHealth() {
         }
 
         // dampen health coming back up too quickly
-        if (!newHealthReport.healthy) {
+        if (newHealthReport.healthy) {
+            lastTimeWentHealthy = new Date().valueOf(); // track when/if ever went healthy
+        } else {
             lastTimeWentUnhealthy = new Date().valueOf(); // track when last polled unhealthy
-        } else if (lastTimeWentUnhealthy + config.HealthDampeningInterval * 1000 >= new Date().valueOf()) {
-            logger.info('forced unhealthy; in health dampening interval'); // TODO: make this log on the first time only
-            newHealthReport.healthy = false;
         }
         if (!pollHealthy && newHealthReport.healthy) {
             logger.info('signal node state changed from unhealthy to healthy');
@@ -157,15 +200,13 @@ const app = express();
 
 async function signalReportHandler(req: express.Request, res: express.Response) {
     if (healthReport) {
+        const report = healthReportRightNow();
         res.status(200);
-        if (!healthReport.healthy) {
-            logger.info('/signal/report returned unhealthy', { report: healthReport });
+        if (!report.healthy) {
+            logger.info('/signal/report returned unhealthy', { report });
         }
 
-        // injected here so as to be consistent with what agent would respond with now
-        healthReport['agentmessage'] = tcpAgentMessage();
-
-        res.send(JSON.stringify(healthReport));
+        res.send(JSON.stringify(report));
     } else {
         logger.warn('/signal/report returned 500 due to no healthReport');
         res.sendStatus(500);
@@ -177,9 +218,11 @@ async function signalHealthHandler(req: express.Request, res: express.Response) 
         metrics.SignalHealthCheckCounter.inc(1);
     }
     if (healthReport) {
+        const report = healthReportRightNow();
+
         res.status(200);
-        if (!healthReport.healthy) {
-            logger.info('/signal/health returned 503', { report: healthReport });
+        if (!report.healthy) {
+            logger.info('/signal/health returned 503', { report });
             if (config.Metrics) {
                 metrics.SignalHealthCheckUnhealthyCounter.inc(1);
             }
@@ -265,34 +308,25 @@ tcpServer.on('error', (err) => {
 });
 
 // construct tcp agent response message
-function tcpAgentMessage(): string {
+function tcpAgentMessage(report: HealthReport): string {
     let message: string[] = [];
-    if (healthReport) {
-        if (
-            !healthReport.services.jicofoHealthy &&
-            healthReport.services.prosodyHealthy &&
-            firstTimeWentUnhealthy + config.DrainGraceInterval * 1000 >= new Date().valueOf()
-        ) {
-            logger.debug('in drain grace period: tcp agent reported up/drain despite jicofo unhealthy');
-            message = ['up', 'drain'];
+    if (report) {
+        if (report.healthy) {
+            message.push('up');
         } else {
-            if (healthReport.healthy) {
-                message.push('up');
-            } else {
-                message.push('down');
-            }
-
-            const nodeStatus = healthReport.status.toLowerCase();
-            if (nodeStatus === 'ready' || nodeStatus === 'drain' || nodeStatus === 'maint') {
-                message.push(nodeStatus);
-            } else {
-                message.push('drain');
-                logger.warn(`tcp agent set drain due to an invalid status ${nodeStatus}`, { report: healthReport });
-            }
-            message.push(healthReport.weight);
+            message.push('down');
         }
+
+        const nodeStatus = report.status.toLowerCase();
+        if (nodeStatus === 'ready' || nodeStatus === 'drain' || nodeStatus === 'maint') {
+            message.push(nodeStatus);
+        } else {
+            message.push('drain');
+            logger.warn(`tcp agent set drain due to an invalid status ${nodeStatus}`, { report });
+        }
+        message.push(report.weight);
     } else {
-        logger.warn('tcp agent returned down/drain due to missing healthReport');
+        logger.warn('tcp agent returned down/drain due to missing health report');
         message = ['down', 'drain'];
     }
     if (config.Metrics && message.includes('down')) {
@@ -310,7 +344,9 @@ tcpServer.on('connection', (sock) => {
     if (config.Metrics) {
         metrics.SignalHealthCheckCounter.inc(1);
     }
-    const agentReport = tcpAgentMessage();
+
+    const report = healthReportRightNow();
+    const agentReport = report.agentmessage;
 
     sock.end(`${agentReport}\n`);
     logger.debug(`${agentReport} reported to ${sock.remoteAddress}:${sock.remotePort}`);
