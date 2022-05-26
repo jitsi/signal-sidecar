@@ -79,6 +79,15 @@ export function calculateWeight(nodeStatus: string, currentParticipants: number)
 let firstTimeWentUnhealthy: number = new Date().valueOf() - (3600000 + config.DrainGraceInterval * 1000);
 let lastTimeWentUnhealthy: number = new Date().valueOf() - (3600000 + config.HealthDampeningInterval * 1000);
 
+function checkDrainGracePeriod(): boolean {
+    if (!healthReport.services.jicofoHealthy &&
+        healthReport.services.prosodyHealthy &&
+        firstTimeWentUnhealthy + config.DrainGraceInterval * 1000 >= new Date().valueOf()) {
+        return true
+    }
+    return false
+}
+
 async function pollForHealth() {
     logger.debug('entering pollForHealth', { report: healthReport });
     checkPollCounter();
@@ -93,8 +102,13 @@ async function pollForHealth() {
 
         // dampen health coming back up too quickly
         if (!newHealthReport.healthy) {
-            lastTimeWentUnhealthy = new Date().valueOf(); // track when last polled unhealthy
-        } else if (lastTimeWentUnhealthy + config.HealthDampeningInterval * 1000 >= new Date().valueOf()) {
+            if (checkDrainGracePeriod()) {
+                newHealthReport.healthy = true;
+            } else {
+                lastTimeWentUnhealthy = new Date().valueOf(); // track when last polled unhealthy
+            }
+        } else if (
+            lastTimeWentUnhealthy + config.HealthDampeningInterval * 1000 >= new Date().valueOf()) {
             logger.info('forced unhealthy; in health dampening interval'); // TODO: make this log on the first time only
             newHealthReport.healthy = false;
         }
@@ -164,6 +178,7 @@ async function signalReportHandler(req: express.Request, res: express.Response) 
 
         // injected here so as to be consistent with what agent would respond with now
         healthReport['agentmessage'] = tcpAgentMessage();
+        // TODO: checkDrainGracePeriod
 
         res.send(JSON.stringify(healthReport));
     } else {
@@ -177,6 +192,7 @@ async function signalHealthHandler(req: express.Request, res: express.Response) 
         metrics.SignalHealthCheckCounter.inc(1);
     }
     if (healthReport) {
+        // TODO: checkDrainGracePeriod
         res.status(200);
         if (!healthReport.healthy) {
             logger.info('/signal/health returned 503', { report: healthReport });
@@ -268,11 +284,7 @@ tcpServer.on('error', (err) => {
 function tcpAgentMessage(): string {
     let message: string[] = [];
     if (healthReport) {
-        if (
-            !healthReport.services.jicofoHealthy &&
-            healthReport.services.prosodyHealthy &&
-            firstTimeWentUnhealthy + config.DrainGraceInterval * 1000 >= new Date().valueOf()
-        ) {
+        if (checkDrainGracePeriod()) {
             logger.debug('in drain grace period: tcp agent reported up/drain despite jicofo unhealthy');
             message = ['up', 'drain'];
         } else {
