@@ -2,36 +2,34 @@
 a sidecar that reports detailed health information from a jitsi signal node.
 
 ## overview
-**signal-sidecar** collects data from a Jitsi signal node and presents it in
-for consumption by devops tools that manage a Jitsi deployment. It offers REST
-endpoints with health, metadata, and metrics. It also provides a HAProxy TCP
-agent for HAProxy agent-check health checks which allows HAProxy to
-intelligently balance between Jitsi signal nodes.
+**signal-sidecar** collects and aggregates data from a Jitsi signal node for
+easy consumption by infra tooling. It offers REST endpoints with health,
+metadata, and metrics. It also provides a HAProxy TCP agent for HAProxy
+agent-check health checks which allows HAProxy to intelligently balance between
+Jitsi signal nodes.
 
 Reported drain status is normally based on the contents of a file located at
 `STATUS_PATH`. The sidecar will also report `DRAIN` status in some cases where
 there is a malfunction.
 
 The HAProxy agent can, using the `WEIGHT_PARTICIPANTS` flag, send a weight back
-that is a function of current **jicofo** participants vs.  `PARTICIPANT_MAX`.
-This will never go below 1%.
+via the TCP agent that is a function of current **jicofo** participants vs.
+`PARTICIPANT_MAX`. This will never go below 1%.
 
 **signal-sidecar** is capable of querying the
 [mod_muc_census jitsi-meet prosody plugin](https://github.com/jitsi/jitsi-meet/blob/master/resources/prosody-plugins/mod_muc_census.lua)
-and reporting room census data as well.
+to report room census data.
 
 ## running
 
-* build locally with:
+build locally with:
 ```
 > npm install
 > npn run build
 ```
 
 * Copy the contents of ./dist to somewhere.
-
 * Set any environment variables that are relevant to your configuration (see below).
-
 * Run with `node <dist>/app.js` 
 
 An official public debian package will be coming to https://ci.jitsi.org soon. Until then, you can roll your own with:
@@ -40,6 +38,9 @@ An official public debian package will be coming to https://ci.jitsi.org soon. U
 ```
 
 ### configuration
+
+The following environment variables can be configured. If using the package,
+they can be set in `/etc/jitsi/signal-sidecar/config`
 
 * `HTTP_PORT`: port for REST calls [6000]
 * `TCP_PORT`: TCP port for HAProxy TCP agent [6060]
@@ -55,6 +56,9 @@ An official public debian package will be coming to https://ci.jitsi.org soon. U
 * `DRAIN_GRACE_INTERVAL`: seconds for tcp agent to report drain instead of down [120]
 * `METRICS`: boolean indicating whether to publish prometheus metrics [true]
 * `LOG_LEVEL`: debug, info, warn, or error [info]
+
+Set the contents of the file at `STATUS_PATH` to `ready` or `drain`
+depending on what you want **signal-sidecar** to report. 
 
 ### flap prevention configuration
 
