@@ -14,6 +14,7 @@ export interface StatusFileData {
     readable: boolean;
     contents: string;
 }
+
 export interface HealthReport {
     time: Date;
     healthy: boolean;
@@ -31,6 +32,8 @@ export interface HealthReport {
         prosodyHealthy: boolean;
         prosodyReachable: boolean;
         prosodyStatusCode: number;
+    };
+    statuses: {
         statusFileFound: boolean;
         statusFileContents: string;
     };
@@ -89,6 +92,8 @@ export default class HealthCollector {
                 prosodyHealthy: false,
                 prosodyReachable: false,
                 prosodyStatusCode: 0,
+            },
+            statuses: {
                 statusFileFound: false,
                 statusFileContents: '',
             },
@@ -233,6 +238,8 @@ export default class HealthCollector {
                 prosodyHealthy,
                 prosodyReachable: prosodyHealth.reachable,
                 prosodyStatusCode: prosodyHealth.code,
+            },
+            statuses: {
                 statusFileFound: statusFileResult.readable,
                 statusFileContents: statusFileResult.contents,
             },
