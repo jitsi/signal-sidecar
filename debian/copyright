@@ -4,7 +4,7 @@ Upstream-Contact: Emil Ivov <emcho@jitsi.org>
 Source: https://github.com/jitsi/signal-sidecar
 
 Files: *
-Copyright: 2021 8x8, Inc.
+Copyright: 2021-2022 8x8, Inc.
 License: Apache-2.0
 
 License: Apache-2.0
