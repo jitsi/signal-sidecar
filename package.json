@@ -1,6 +1,6 @@
 {
   "name": "signal-sidecar",
-  "version": "1.0.0",
+  "version": "0.3.2",
   "description": "health report sidecar service for jitsi signal nodes",
   "repository": {
     "type": "git",

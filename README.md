@@ -122,7 +122,7 @@ These are enabled by default and can be disabled by setting them to 0.
 
 ## development builds
 
-The current version has been tested with node v12.22 and npm v6.14.
+The current version has been tested with node v16.18.1 and npm v8.19.2
 
 Before making a submission, please run the following so that it's linted properly:
 ```
