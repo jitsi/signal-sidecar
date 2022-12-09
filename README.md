@@ -54,7 +54,7 @@ complete signal node, point the health checker at the `/signal/health` endpoint.
 {
     "time": [string],
     "healthy": [boolean],                          // overall signal node health
-    "status": [ready|drain|maint|unknown],         // drain state of node
+    "status": [ready|drain|maint|unknown],         // drain state of node including flap mitigation
     "weight": [string],                            // weight of node (0-100%)
     "agentmessage" [string],                       // current tcp agent message
     "services": {
@@ -67,6 +67,8 @@ complete signal node, point the health checker at the `/signal/health` endpoint.
         "prosodyHealthy": [boolean],               // prosody generally healthy
         "prosodyReachable": [boolean],             // prosody health http reachable
         "prosodyStatusCode": [status code or 0],   // http status code from prosody
+    },
+    "statuses": {
         "statusFileFound": [boolean],              // was the status file found
         "statusFileContents": [stuff],             // contents of the status file
     },
