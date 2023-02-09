@@ -93,7 +93,7 @@ function healthReportRightNow() {
     } else {
         // unhealthy, check if we are in the drain grace period
         if (checkDrainGracePeriod()) {
-            logger.debug('in drain grace period: reporting health / drain despite jicofo unhealthy');
+            logger.warn('in drain grace period: reporting health / drain despite jicofo unhealthy');
             nowHealthReport.healthy = true;
             nowHealthReport.status = 'drain';
             nowHealthReport.healthdamped = true;
