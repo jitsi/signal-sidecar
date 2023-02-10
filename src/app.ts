@@ -113,12 +113,13 @@ function checkHealthDampeningPeriod(): boolean {
 function checkDrainGracePeriod(): boolean {
     // drain grace period is on if:
     // we've ever been healthy and
-    // jicofo is unhealthy but otherwise all else is good and
+    // jicofo is soft down (503 error) AND/OR
+    // prosody is soft down (timeout instead of error)
+    // but otherwise all else is good and
     // the current time is less than window ending at first failure time + grace period
     return (
         lastTimeWentHealthy !== undefined &&
-        !healthReport.services.jicofoHealthy &&
-        healthReport.services.prosodyHealthy &&
+        (healthReport.services.jicofoSoftDown || healthReport.services.prosodySoftDown) &&
         firstTimeWentUnhealthy + config.DrainGraceInterval * 1000 >= new Date().valueOf()
     );
 }

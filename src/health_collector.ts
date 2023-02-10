@@ -6,6 +6,7 @@ import { calculateWeight } from './app';
 
 export interface HealthData {
     reachable: boolean;
+    timeout: boolean;
     code: number;
     contents: string;
 }
@@ -25,12 +26,14 @@ export interface HealthReport {
     services: {
         jicofoHealthy: boolean;
         jicofoReachable: boolean;
+        jicofoSoftDown: boolean;
         jicofoStatusCode: number;
         jicofoStatusContents: string;
         jicofoStatsReachable: boolean;
         jicofoStatsStatusCode: number;
         prosodyHealthy: boolean;
         prosodyReachable: boolean;
+        prosodySoftDown: boolean;
         prosodyStatusCode: number;
     };
     statuses: {
@@ -85,12 +88,14 @@ export default class HealthCollector {
             services: {
                 jicofoHealthy: false,
                 jicofoReachable: false,
+                jicofoySoftDown: false,
                 jicofoStatusCode: 0,
                 jicofoStatusContents: '',
                 jicofoStatsReachable: false,
                 jicofoStatsStatusCode: 0,
                 prosodyHealthy: false,
                 prosodyReachable: false,
+                prosodySoftDown: false,
                 prosodyStatusCode: 0,
             },
             statuses: {
@@ -105,7 +110,7 @@ export default class HealthCollector {
     }
 
     initHealthData(): HealthData {
-        return <HealthData>{ reachable: false, code: 0, contents: '' };
+        return <HealthData>{ reachable: false, timeout: false, code: 0, contents: '' };
     }
 
     async checkHealthHttp(url: string, method = 'GET'): Promise<HealthData> {
@@ -127,9 +132,14 @@ export default class HealthCollector {
                 contents: response.body,
             };
         } catch (err) {
+            let timeout = false;
+            if (err.code == 'ETIMEDOUT') {
+                timeout = true;
+            }
             logger.warn('health_collector checkHealthHttp failed', { err, url });
             return <HealthData>{
                 reachable: false,
+                timeout,
                 code: 0,
                 contents: '',
             };
@@ -204,13 +214,23 @@ export default class HealthCollector {
         let overallhealth = false;
         let jicofoHealthy = false;
         let prosodyHealthy = false;
+        let jicofoSoftDown = false;
+        let prosodySoftDown = false;
 
         if (jicofoHealth.reachable && jicofoHealth.code == 200 && jicofoStats.reachable && jicofoStats.code == 200) {
             jicofoHealthy = true;
         }
 
+        if (jicofoHealth.reachable && jicofoHealth.code == 503) {
+            jicofoSoftDown = true;
+        }
+
         if (prosodyHealth.reachable && prosodyHealth.code == 200) {
             prosodyHealthy = true;
+        } else {
+            if (prosodyHealth.timeout) {
+                prosodySoftDown = true;
+            }
         }
 
         if (
@@ -231,12 +251,14 @@ export default class HealthCollector {
             services: {
                 jicofoHealthy,
                 jicofoReachable: jicofoHealth.reachable,
+                jicofoSoftDown,
                 jicofoStatusCode: jicofoHealth.code,
                 jicofoStatusContents: jicofoHealth.contents,
                 jicofoStatsReachable: jicofoStats.reachable,
                 jicofoStatsStatusCode: jicofoStats.code,
                 prosodyHealthy,
                 prosodyReachable: prosodyHealth.reachable,
+                prosodySoftDown,
                 prosodyStatusCode: prosodyHealth.code,
             },
             statuses: {
