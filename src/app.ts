@@ -117,11 +117,29 @@ function checkDrainGracePeriod(): boolean {
     // prosody is soft down (timeout instead of error)
     // but otherwise all else is good and
     // the current time is less than window ending at first failure time + grace period
-    return (
+    if (
         lastTimeWentHealthy !== undefined &&
-        (healthReport.services.jicofoSoftDown || healthReport.services.prosodySoftDown) &&
         firstTimeWentUnhealthy + config.DrainGraceInterval * 1000 >= new Date().valueOf()
-    );
+    ) {
+        if (healthReport.services.jicofoSoftDown) {
+            if (healthReport.services.prosodySoftDown) {
+                // both prosody and jicofo are in soft down, so grace period applies
+                return true;
+            } else {
+                if (healthReport.services.prosodyHealthy) {
+                    // only jicofo is in soft down, so grace period applies
+                    return true;
+                }
+            }
+        } else {
+            if (!healthReport.services.jicofoHealthy && healthReport.services.prosodySoftDown) {
+                // jicofo is healthy and prosody is soft down so grace period applies
+                return true;
+            }
+        }
+    }
+    // never been healthy, or out of grace period, or something is hard down, so no grace period applies
+    return false;
 }
 
 async function pollForHealth() {

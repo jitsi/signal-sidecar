@@ -88,7 +88,7 @@ export default class HealthCollector {
             services: {
                 jicofoHealthy: false,
                 jicofoReachable: false,
-                jicofoySoftDown: false,
+                jicofoSoftDown: false,
                 jicofoStatusCode: 0,
                 jicofoStatusContents: '',
                 jicofoStatsReachable: false,
