@@ -5,6 +5,7 @@ import HealthCollector, { HealthReport } from './health_collector';
 import CensusCollector from './census_collector';
 import metrics from './metrics';
 import * as net from 'net';
+import { spawn } from 'child_process';
 
 logger.info('signal-sidecar startup', { config });
 
@@ -165,6 +166,17 @@ async function pollForHealth() {
         } else if (pollHealthy && !newHealthReport.healthy) {
             firstTimeWentUnhealthy = new Date().valueOf(); // track when a reported state change to unhealthy began
             logger.info('signal node state changed from healthy to unhealthy');
+
+            if (!newHealthReport.services.jicofoHealthy && config.JicofoDump) {
+                // run jicofo dump here
+                logger.info('Spawning jicofo dump', { script: config.JicofoDump });
+                spawn(config.JicofoDump, [], { stdio: 'ignore', detached: true }).unref();
+            }
+            if (!newHealthReport.services.prosodyHealthy && config.ProsodyDump) {
+                // run prosody dump here
+                logger.info('Spawning prosody dump', { script: config.ProsodyDump });
+                spawn(config.ProsodyDump, [], { stdio: 'ignore', detached: true }).unref();
+            }
         }
 
         pollHealthy = newHealthReport.healthy;

@@ -16,9 +16,17 @@ const env = envalid.cleanEnv(process.env, {
         desc: 'base url of jicofo health',
         default: 'http://localhost:8888',
     }),
+    JICOFO_DUMP: envalid.str({
+        desc: 'dump script to run if jicofo is unhealthy',
+        default: '',
+    }),
     PROSODY_ORIG: envalid.str({
         desc: 'base url of prosody rest api',
         default: 'http://localhost:5280',
+    }),
+    PROSODY_DUMP: envalid.str({
+        desc: 'dump script to run if prosody is unhealthy',
+        default: '',
     }),
     STATUS_PATH: envalid.str({
         desc: 'file to indicate ready/drain status of node',
@@ -66,7 +74,9 @@ const out = {
     HTTPServerPort: env.HTTP_PORT,
     TCPServerPort: env.TCP_PORT,
     JicofoOrig: env.JICOFO_ORIG,
+    JicofoDump: env.JICOFO_DUMP,
     ProsodyOrig: env.PROSODY_ORIG,
+    ProsodyDump: env.PROSODY_DUMP,
     StatusPath: env.STATUS_PATH,
     PollingInterval: env.POLLING_INTERVAL,
     ParticipantMax: env.PARTICIPANT_MAX,
