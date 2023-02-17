@@ -95,7 +95,6 @@ function healthReportRightNow() {
     } else {
         // unhealthy, check if we are in the drain grace period
         if (checkDrainGracePeriod()) {
-            firstTimeWentDrained = firstTimeWentUnhealthy;
             logger.warn('in drain grace period: reporting health / drain despite jicofo unhealthy');
             nowHealthReport.healthy = true;
             nowHealthReport.status = 'drain';
@@ -120,6 +119,26 @@ function checkHealthDampeningPeriod(): boolean {
     return lastTimeWentUnhealthy + config.HealthDampeningInterval * 1000 >= new Date().valueOf();
 }
 
+function checkSoftDown(checkHealthReport: HealthReport): boolean {
+    if (checkHealthReport.services.jicofoSoftDown) {
+        if (checkHealthReport.services.prosodySoftDown) {
+            // both prosody and jicofo are in soft down, so grace period applies
+            return true;
+        } else {
+            if (checkHealthReport.services.prosodyHealthy) {
+                // only jicofo is in soft down, so grace period applies
+                return true;
+            }
+        }
+    } else {
+        if (!checkHealthReport.services.jicofoHealthy && checkHealthReport.services.prosodySoftDown) {
+            // jicofo is healthy and prosody is soft down so grace period applies
+            return true;
+        }
+    }
+    return false;
+}
+
 function checkDrainGracePeriod(): boolean {
     // drain grace period is on if:
     // we've ever been healthy and
@@ -131,22 +150,7 @@ function checkDrainGracePeriod(): boolean {
         lastTimeWentHealthy !== undefined &&
         firstTimeWentUnhealthy + config.DrainGraceInterval * 1000 >= new Date().valueOf()
     ) {
-        if (healthReport.services.jicofoSoftDown) {
-            if (healthReport.services.prosodySoftDown) {
-                // both prosody and jicofo are in soft down, so grace period applies
-                return true;
-            } else {
-                if (healthReport.services.prosodyHealthy) {
-                    // only jicofo is in soft down, so grace period applies
-                    return true;
-                }
-            }
-        } else {
-            if (!healthReport.services.jicofoHealthy && healthReport.services.prosodySoftDown) {
-                // jicofo is healthy and prosody is soft down so grace period applies
-                return true;
-            }
-        }
+        return checkSoftDown(healthReport);
     }
     // never been healthy, or out of grace period, or something is hard down, so no grace period applies
     return false;
@@ -175,6 +179,11 @@ async function pollForHealth() {
         } else if (pollHealthy && !newHealthReport.healthy) {
             firstTimeWentUnhealthy = new Date().valueOf(); // track when a reported state change to unhealthy began
             logger.info('signal node state changed from healthy to unhealthy');
+
+            if (checkSoftDown(newHealthReport)) {
+                logger.info('signal node state is soft down');
+                firstTimeWentDrained = firstTimeWentUnhealthy;
+            }
 
             if (!newHealthReport.services.jicofoHealthy && config.JicofoDump) {
                 // run jicofo dump here
