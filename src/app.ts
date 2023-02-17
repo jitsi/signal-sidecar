@@ -81,6 +81,7 @@ export function calculateWeight(nodeStatus: string, currentParticipants: number)
 // init flap mitigation timestamps to something meaningless
 let firstTimeWentUnhealthy: number = new Date().valueOf() - (3600000 + config.DrainGraceInterval * 1000);
 let lastTimeWentUnhealthy: number = new Date().valueOf() - (3600000 + config.HealthDampeningInterval * 1000);
+let firstTimeWentDrained = 0;
 
 function healthReportRightNow() {
     const nowHealthReport = <HealthReport>JSON.parse(JSON.stringify(healthReport));
@@ -107,37 +108,49 @@ function healthReportRightNow() {
 }
 
 function checkHealthDampeningPeriod(): boolean {
+    // first check if we went drained and never went fully unhealthy
+    if (
+        firstTimeWentDrained == firstTimeWentUnhealthy &&
+        lastTimeWentUnhealthy - firstTimeWentDrained <= config.DrainGraceInterval * 1000
+    ) {
+        return false;
+    }
     // health dampening period is time enforced period after the last unhealthy check before we report healthy again
     return lastTimeWentUnhealthy + config.HealthDampeningInterval * 1000 >= new Date().valueOf();
 }
 
+// jicofo is soft down (503 error) AND/OR
+// prosody is soft down (timeout instead of error)
+function checkSoftDown(checkHealthReport: HealthReport): boolean {
+    if (checkHealthReport.services.jicofoSoftDown) {
+        if (checkHealthReport.services.prosodySoftDown) {
+            // both prosody and jicofo are in soft down, so grace period applies
+            return true;
+        } else {
+            if (checkHealthReport.services.prosodyHealthy) {
+                // only jicofo is in soft down, so grace period applies
+                return true;
+            }
+        }
+    } else {
+        if (!checkHealthReport.services.jicofoHealthy && checkHealthReport.services.prosodySoftDown) {
+            // jicofo is healthy and prosody is soft down so grace period applies
+            return true;
+        }
+    }
+    return false;
+}
+
 function checkDrainGracePeriod(): boolean {
     // drain grace period is on if:
-    // we've ever been healthy and
-    // jicofo is soft down (503 error) AND/OR
-    // prosody is soft down (timeout instead of error)
+    // we've ever been healthy and health is soft down
     // but otherwise all else is good and
     // the current time is less than window ending at first failure time + grace period
     if (
         lastTimeWentHealthy !== undefined &&
         firstTimeWentUnhealthy + config.DrainGraceInterval * 1000 >= new Date().valueOf()
     ) {
-        if (healthReport.services.jicofoSoftDown) {
-            if (healthReport.services.prosodySoftDown) {
-                // both prosody and jicofo are in soft down, so grace period applies
-                return true;
-            } else {
-                if (healthReport.services.prosodyHealthy) {
-                    // only jicofo is in soft down, so grace period applies
-                    return true;
-                }
-            }
-        } else {
-            if (!healthReport.services.jicofoHealthy && healthReport.services.prosodySoftDown) {
-                // jicofo is healthy and prosody is soft down so grace period applies
-                return true;
-            }
-        }
+        return checkSoftDown(healthReport);
     }
     // never been healthy, or out of grace period, or something is hard down, so no grace period applies
     return false;
@@ -166,6 +179,11 @@ async function pollForHealth() {
         } else if (pollHealthy && !newHealthReport.healthy) {
             firstTimeWentUnhealthy = new Date().valueOf(); // track when a reported state change to unhealthy began
             logger.info('signal node state changed from healthy to unhealthy');
+
+            if (checkSoftDown(newHealthReport)) {
+                logger.info('signal node state is soft down');
+                firstTimeWentDrained = firstTimeWentUnhealthy;
+            }
 
             if (!newHealthReport.services.jicofoHealthy && config.JicofoDump) {
                 // run jicofo dump here
