@@ -119,6 +119,8 @@ function checkHealthDampeningPeriod(): boolean {
     return lastTimeWentUnhealthy + config.HealthDampeningInterval * 1000 >= new Date().valueOf();
 }
 
+// jicofo is soft down (503 error) AND/OR
+// prosody is soft down (timeout instead of error)
 function checkSoftDown(checkHealthReport: HealthReport): boolean {
     if (checkHealthReport.services.jicofoSoftDown) {
         if (checkHealthReport.services.prosodySoftDown) {
@@ -141,9 +143,7 @@ function checkSoftDown(checkHealthReport: HealthReport): boolean {
 
 function checkDrainGracePeriod(): boolean {
     // drain grace period is on if:
-    // we've ever been healthy and
-    // jicofo is soft down (503 error) AND/OR
-    // prosody is soft down (timeout instead of error)
+    // we've ever been healthy and health is soft down
     // but otherwise all else is good and
     // the current time is less than window ending at first failure time + grace period
     if (
