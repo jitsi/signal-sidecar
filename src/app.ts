@@ -81,6 +81,7 @@ export function calculateWeight(nodeStatus: string, currentParticipants: number)
 // init flap mitigation timestamps to something meaningless
 let firstTimeWentUnhealthy: number = new Date().valueOf() - (3600000 + config.DrainGraceInterval * 1000);
 let lastTimeWentUnhealthy: number = new Date().valueOf() - (3600000 + config.HealthDampeningInterval * 1000);
+let firstTimeWentDrained = 0;
 
 function healthReportRightNow() {
     const nowHealthReport = <HealthReport>JSON.parse(JSON.stringify(healthReport));
@@ -94,6 +95,7 @@ function healthReportRightNow() {
     } else {
         // unhealthy, check if we are in the drain grace period
         if (checkDrainGracePeriod()) {
+            firstTimeWentDrained = firstTimeWentUnhealthy;
             logger.warn('in drain grace period: reporting health / drain despite jicofo unhealthy');
             nowHealthReport.healthy = true;
             nowHealthReport.status = 'drain';
@@ -107,6 +109,13 @@ function healthReportRightNow() {
 }
 
 function checkHealthDampeningPeriod(): boolean {
+    // first check if we went drained and never went fully unhealthy
+    if (
+        firstTimeWentDrained == firstTimeWentUnhealthy &&
+        lastTimeWentUnhealthy - firstTimeWentDrained <= config.DrainGraceInterval * 1000
+    ) {
+        return false;
+    }
     // health dampening period is time enforced period after the last unhealthy check before we report healthy again
     return lastTimeWentUnhealthy + config.HealthDampeningInterval * 1000 >= new Date().valueOf();
 }
