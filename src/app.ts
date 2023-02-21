@@ -108,7 +108,6 @@ function healthReportRightNow() {
 }
 
 function checkHealthDampeningPeriod(): boolean {
-    logger.debug('check dampening');
     // first check if we went drained and never went fully unhealthy
     if (
         firstTimeWentDrained == firstTimeWentUnhealthy &&
