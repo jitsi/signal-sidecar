@@ -133,7 +133,7 @@ function checkSoftDown(checkHealthReport: HealthReport): boolean {
             }
         }
     } else {
-        if (!checkHealthReport.services.jicofoHealthy && checkHealthReport.services.prosodySoftDown) {
+        if (checkHealthReport.services.jicofoHealthy && checkHealthReport.services.prosodySoftDown) {
             // jicofo is healthy and prosody is soft down so grace period applies
             return true;
         }
