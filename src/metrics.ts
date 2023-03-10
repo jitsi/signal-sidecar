@@ -32,6 +32,11 @@ const signalHealthCheckUnhealthyCounter = new promClient.Counter({
     help: 'number of times the health check has been called and returned unhealthy',
 });
 
+const signalHealthTotalUnhealthyCounter = new promClient.Counter({
+    name: 'signal_unhealthy_total',
+    help: 'number of times gone unhealthy',
+});
+
 const signalHealthGauge = new promClient.Gauge({
     name: 'signal_health',
     help: 'gauge for signal health (1) or unhealthy (0)',
@@ -40,6 +45,11 @@ const signalHealthGauge = new promClient.Gauge({
 const signalCensusGauge = new promClient.Gauge({
     name: 'signal_census',
     help: 'gauge for census health (1) or unhealthy (0)',
+});
+
+const prosodySumSquaredParticipantsGauge = new promClient.Gauge({
+    name: 'prosody_participant_sum_squared',
+    help: 'gauge for participant sum squared gauge',
 });
 
 export function middleware(req: express.Request, res: express.Response, next: express.NextFunction): void {
@@ -87,8 +97,10 @@ export default {
     RequestDuration: requestDuration,
     SignalHealthCheckCounter: signalHealthCheckCounter,
     SignalHealthCheckUnhealthyCounter: signalHealthCheckUnhealthyCounter,
+    SignalHealthTotalUnhealthyCounter: signalHealthTotalUnhealthyCounter,
     SignalHealthGauge: signalHealthGauge,
     SignalCensusGauge: signalCensusGauge,
+    ProsodySumSquaredParticipantsGauge: prosodySumSquaredParticipantsGauge,
     middleware: middleware,
     registerHandler: registerHandler,
 };

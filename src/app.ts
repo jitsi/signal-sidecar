@@ -165,6 +165,9 @@ async function pollForHealth() {
         // inject prosody census stats if we are polling the census
         const censusStats = getCensusStats();
         if (censusStats) {
+            if (config.Metrics) {
+                metrics.ProsodySumSquaredParticipantsGauge.set(censusStats.prosodySumSquaredParticipants);
+            }
             newHealthReport.stats = Object.assign({}, newHealthReport.stats, censusStats);
         }
 
@@ -177,6 +180,10 @@ async function pollForHealth() {
         if (!pollHealthy && newHealthReport.healthy) {
             logger.info('signal node state changed from unhealthy to healthy');
         } else if (pollHealthy && !newHealthReport.healthy) {
+            if (config.Metrics) {
+                metrics.SignalHealthTotalUnhealthyCounter.inc(1);
+            }
+
             firstTimeWentUnhealthy = new Date().valueOf(); // track when a reported state change to unhealthy began
             logger.info('signal node state changed from healthy to unhealthy');
 
