@@ -16,6 +16,6 @@ COPY ./dist/. ./dist
 COPY ./build/run.sh .
 
 # Run app
-EXPOSE 6000
+EXPOSE 6000 6060
 ENV NODE_ENV=production
 CMD [ "./run.sh" ]
