@@ -6,8 +6,18 @@ import CensusCollector from './census_collector';
 import metrics from './metrics';
 import * as net from 'net';
 import { spawn } from 'child_process';
+import SidecarConsul from './consul';
+import { writeFileSync } from 'fs';
 
 logger.info('signal-sidecar startup', { config });
+
+const consul = new SidecarConsul({
+    host: config.ConsulHost,
+    port: config.ConsulPort,
+    secure: config.ConsulSecure,
+    reportKey: config.ConsulReportKey,
+    statusKey: config.ConsulStatusKey,
+});
 
 /////////////////////////
 // health polling counter
@@ -54,6 +64,26 @@ const initHealthReport = healthCollector.initHealthReport();
 let healthReport = initHealthReport;
 
 let pollHealthy = true; // suppress state change log on restart
+
+async function publishConsulReport() {
+    if (healthReport) {
+        try {
+            logger.debug('publishing consul health report');
+            await consul.publishReport(healthReportRightNow());
+        } catch (err) {
+            logger.error('publishConsulReport error', { err });
+        }
+    } else {
+        logger.warn('Skipping consul publish, health report missing');
+    }
+    setTimeout(publishConsulReport, config.ConsulReportsInterval * 1000);
+}
+
+logger.debug('config flag', { flag: config.ConsulReports });
+if (config.ConsulReports) {
+    logger.debug('Beginning consul report publish loop');
+    publishConsulReport();
+}
 
 export function calculateWeight(nodeStatus: string, currentParticipants: number): string {
     if (nodeStatus === 'drain' || nodeStatus === 'maint') {
@@ -248,6 +278,18 @@ function getCensusStats() {
         };
     }
     return null;
+}
+
+if (config.ConsulStatus) {
+    logger.info('Starting consul watch', { key: config.ConsulStatusKey });
+    consul.startWatch((data) => {
+        logger.info('consul watch triggered', { data });
+        try {
+            writeFileSync(config.StatusPath, data, 'utf8');
+        } catch (err) {
+            logger.error('error writing status file from consul watch', { err });
+        }
+    });
 }
 
 ////////////////////
