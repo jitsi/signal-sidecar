@@ -11,6 +11,7 @@
     "node": ">=16"
   },
   "dependencies": {
+    "consul": "^1.2.0",
     "dotenv": "^8.6.0",
     "envalid": "^6.0.2",
     "express": "^4.17.1",
@@ -22,6 +23,7 @@
     "winston": "^3.3.3"
   },
   "devDependencies": {
+    "@types/consul": "^0.40.0",
     "@types/express": "^4.17.7",
     "@types/got": "^9.6.11",
     "@types/jsonwebtoken": "^8.5.0",

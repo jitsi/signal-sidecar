@@ -68,6 +68,38 @@ const env = envalid.cleanEnv(process.env, {
         choices: ['debug', 'info', 'warn', 'error'],
         default: 'info',
     }),
+    CONSUL_HOST: envalid.str({
+        desc: 'consul http host',
+        default: 'localhost',
+    }),
+    CONSUL_PORT: envalid.str({
+        desc: 'consul http port',
+        default: '8500',
+    }),
+    CONSUL_SECURE: envalid.bool({
+        desc: 'consul https?',
+        default: false,
+    }),
+    CONSUL_STATUS: envalid.bool({
+        desc: 'should consul be used to read signal state?',
+        default: false,
+    }),
+    CONSUL_REPORTS: envalid.bool({
+        desc: 'should consul be used to publish signal reports?',
+        default: false,
+    }),
+    CONSUL_STATUS_KEY: envalid.str({
+        desc: 'path in consul kv store to read for shard state',
+        default: 'shard-state',
+    }),
+    CONSUL_REPORT_KEY: envalid.str({
+        desc: 'path in consul kv store to write reports',
+        default: 'shard-report',
+    }),
+    CONSUL_REPORTS_INTERVAL: envalid.num({
+        desc: 'seconds between writing health report to consul',
+        default: 60,
+    }),
 });
 
 const out = {
@@ -87,6 +119,14 @@ const out = {
     DrainGraceInterval: <number>env.DRAIN_GRACE_INTERVAL,
     Metrics: env.METRICS,
     LogLevel: env.LOG_LEVEL,
+    ConsulHost: env.CONSUL_HOST,
+    ConsulPort: env.CONSUL_PORT,
+    ConsulSecure: env.CONSUL_SECURE,
+    ConsulStatus: env.CONSUL_STATUS,
+    ConsulReports: env.CONSUL_REPORTS,
+    ConsulReportsInterval: env.CONSUL_REPORTS_INTERVAL,
+    ConsulStatusKey: env.CONSUL_STATUS_KEY,
+    ConsulReportKey: env.CONSUL_REPORT_KEY,
 };
 
 if (out.DrainGraceInterval < out.HealthDampeningInterval) {

@@ -6,8 +6,18 @@ import CensusCollector from './census_collector';
 import metrics from './metrics';
 import * as net from 'net';
 import { spawn } from 'child_process';
+import SidecarConsul from './consul';
+import { writeFileSync } from 'fs';
 
 logger.info('signal-sidecar startup', { config });
+
+const consul = new SidecarConsul({
+    host: config.ConsulHost,
+    port: config.ConsulPort,
+    secure: config.ConsulSecure,
+    reportKey: config.ConsulReportKey,
+    statusKey: config.ConsulStatusKey,
+});
 
 /////////////////////////
 // health polling counter
@@ -248,6 +258,37 @@ function getCensusStats() {
         };
     }
     return null;
+}
+
+async function publishConsulReport() {
+    if (healthReport) {
+        try {
+            logger.debug('Publishing consul health report');
+            await consul.publishReport(healthReportRightNow());
+        } catch (err) {
+            logger.error('ERROR in publishConsulReport', { err });
+        }
+    } else {
+        logger.warn('Skipping consul publish, health report missing');
+    }
+    setTimeout(publishConsulReport, config.ConsulReportsInterval * 1000);
+}
+
+if (config.ConsulReports) {
+    logger.debug('Initializing consul report publish loop');
+    publishConsulReport();
+}
+
+if (config.ConsulStatus) {
+    logger.info('Starting consul watch', { key: config.ConsulStatusKey });
+    consul.startWatch((data) => {
+        logger.info('consul watch triggered', { data });
+        try {
+            writeFileSync(config.StatusPath, data, 'utf8');
+        } catch (err) {
+            logger.error('error writing status file from consul watch', { err });
+        }
+    });
 }
 
 ////////////////////
