@@ -85,7 +85,7 @@ const env = envalid.cleanEnv(process.env, {
         default: false,
     }),
     CONSUL_REPORTS: envalid.bool({
-        desc: 'should consul be used to read signal state?',
+        desc: 'should consul be used to publish signal reports?',
         default: false,
     }),
     CONSUL_STATUS_KEY: envalid.str({
