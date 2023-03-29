@@ -15,6 +15,9 @@ COPY ./dist/. ./dist
 # Copy the run script
 COPY ./build/run.sh .
 
+# Create default shard state dir
+RUN mkdir -p /etc/jitsi
+
 # Run app
 EXPOSE 6000 6060
 ENV NODE_ENV=production
