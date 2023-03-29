@@ -65,26 +65,6 @@ let healthReport = initHealthReport;
 
 let pollHealthy = true; // suppress state change log on restart
 
-async function publishConsulReport() {
-    if (healthReport) {
-        try {
-            logger.debug('publishing consul health report');
-            await consul.publishReport(healthReportRightNow());
-        } catch (err) {
-            logger.error('publishConsulReport error', { err });
-        }
-    } else {
-        logger.warn('Skipping consul publish, health report missing');
-    }
-    setTimeout(publishConsulReport, config.ConsulReportsInterval * 1000);
-}
-
-logger.debug('config flag', { flag: config.ConsulReports });
-if (config.ConsulReports) {
-    logger.debug('Beginning consul report publish loop');
-    publishConsulReport();
-}
-
 export function calculateWeight(nodeStatus: string, currentParticipants: number): string {
     if (nodeStatus === 'drain' || nodeStatus === 'maint') {
         return '0%';
@@ -278,6 +258,25 @@ function getCensusStats() {
         };
     }
     return null;
+}
+
+async function publishConsulReport() {
+    if (healthReport) {
+        try {
+            logger.debug('Publishing consul health report');
+            await consul.publishReport(healthReportRightNow());
+        } catch (err) {
+            logger.error('ERROR in publishConsulReport', { err });
+        }
+    } else {
+        logger.warn('Skipping consul publish, health report missing');
+    }
+    setTimeout(publishConsulReport, config.ConsulReportsInterval * 1000);
+}
+
+if (config.ConsulReports) {
+    logger.debug('Initializing consul report publish loop');
+    publishConsulReport();
 }
 
 if (config.ConsulStatus) {
