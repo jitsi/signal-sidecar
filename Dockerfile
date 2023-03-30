@@ -16,7 +16,7 @@ COPY ./dist/. ./dist
 COPY ./build/run.sh .
 
 # Create default shard state dir
-RUN mkdir -p /etc/jitsi
+RUN mkdir -p /etc/jitsi && echo drain > /etc/jitsi/shard-status
 
 # Run app
 EXPOSE 6000 6060
