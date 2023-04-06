@@ -28,7 +28,7 @@ class SidecarConsul {
     startWatch(cb: SidecarConsulCallback): void {
         this.statusWatch = this.consul.watch({
             method: this.consul.kv.get,
-            options: { key: this.statusKey },
+            options: { key: this.statusKey, stale: true },
             backoffFactor: 1000,
         });
 
