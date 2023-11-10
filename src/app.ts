@@ -264,7 +264,7 @@ async function publishConsulReport() {
     if (healthReport) {
         try {
             logger.debug('Publishing consul health report');
-            await consul.publishReport(healthReportRightNow(), censusReport);
+            await consul.publishReport(healthReportRightNow(), config.CensusReports ? censusReport : undefined);
         } catch (err) {
             logger.error('ERROR in publishConsulReport', { err });
         }

@@ -52,6 +52,10 @@ const env = envalid.cleanEnv(process.env, {
         desc: 'census conference host name',
         default: 'host.example.com',
     }),
+    CENSUS_REPORTS: envalid.bool({
+        desc: 'should consul be used to publish census reports in the signal reports?',
+        default: false,
+    }),
     HEALTH_DAMPENING_INTERVAL: envalid.num({
         desc: 'seconds to wait before report can go healthy after last unhealthy',
         default: 30,
@@ -114,6 +118,7 @@ const out = {
     ParticipantMax: env.PARTICIPANT_MAX,
     CensusPoll: env.CENSUS_POLL,
     CensusHost: env.CENSUS_HOST,
+    CensusReports: env.CENSUS_REPORTS,
     WeightParticipants: env.WEIGHT_PARTICIPANTS,
     HealthDampeningInterval: env.HEALTH_DAMPENING_INTERVAL,
     DrainGraceInterval: <number>env.DRAIN_GRACE_INTERVAL,
