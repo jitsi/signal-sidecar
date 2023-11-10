@@ -1,10 +1,10 @@
 import Consul from 'consul';
 import logger from './logger';
 import { HealthReport } from './health_collector';
-import { CensusReport } from './census_collector';
+import { RoomData } from './census_collector';
 
 interface ConsulReport extends HealthReport {
-    census: CensusReport;
+    census: RoomData[];
 }
 
 export interface SidecarConsulOptions {
@@ -55,7 +55,7 @@ class SidecarConsul {
         }
     }
 
-    async publishReport(health: HealthReport, census: CensusReport): Promise<unknown> {
+    async publishReport(health: HealthReport, census: RoomData[]): Promise<unknown> {
         const report: ConsulReport = {
             ...health,
             census,
