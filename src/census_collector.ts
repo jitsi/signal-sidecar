@@ -79,6 +79,10 @@ export default class CensusCollector {
             if (this.collectMetrics) {
                 metrics.SignalCensusGauge.set(1);
             }
+            // mod_muc_census returns {} if there are no rooms
+            if (!response.room_census) {
+                response.room_census = [];
+            }
             return response;
         } catch (err) {
             logger.warn('checkCensusHttp failed', { err });
