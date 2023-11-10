@@ -1,6 +1,11 @@
 import Consul from 'consul';
 import logger from './logger';
 import { HealthReport } from './health_collector';
+import { RoomData } from './census_collector';
+
+interface ConsulReport extends HealthReport {
+    census: RoomData[];
+}
 
 export interface SidecarConsulOptions {
     host: string;
@@ -50,7 +55,11 @@ class SidecarConsul {
         }
     }
 
-    async publishReport(report: HealthReport): Promise<unknown> {
+    async publishReport(health: HealthReport, census: RoomData[]): Promise<unknown> {
+        const report: ConsulReport = {
+            ...health,
+            census,
+        };
         return new Promise((resolve, reject) => {
             this.consul.kv
                 .set(this.reportKey, JSON.stringify(report))
