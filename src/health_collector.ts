@@ -212,6 +212,7 @@ export default class HealthCollector {
         }
 
         let overallhealth = false;
+        let overallstatus = 'unknown';
         let jicofoHealthy = false;
         let prosodyHealthy = false;
         let jicofoSoftDown = false;
@@ -233,11 +234,18 @@ export default class HealthCollector {
             }
         }
 
+        if (statusFileResult.contents === 'unhealthy') {
+            overallstatus = 'drain';
+        } else {
+            overallstatus = statusFileResult.contents;
+        }
+
         if (
             jicofoHealthy &&
             prosodyHealthy &&
             statusFileResult.readable &&
-            parsedStatsFlag // stats file parsed successfully
+            parsedStatsFlag &&        // stats file parsed successfully
+            statusFileResult.contents !== 'unhealthy'
         ) {
             overallhealth = true;
         }
@@ -246,7 +254,7 @@ export default class HealthCollector {
             time: new Date(),
             healthy: overallhealth,
             healthdamped: false,
-            status: statusFileResult.contents,
+            status: overallstatus,
             weight: calculateWeight(statusFileResult.contents, jicofoParticipants),
             services: {
                 jicofoHealthy,
