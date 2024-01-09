@@ -57,8 +57,10 @@ they can be set in `/etc/jitsi/signal-sidecar/config`
 * `METRICS`: boolean indicating whether to publish prometheus metrics [true]
 * `LOG_LEVEL`: debug, info, warn, or error [info]
 
-Set the contents of the file at `STATUS_PATH` to `ready` or `drain`
-depending on what you want **signal-sidecar** to report. 
+Set the contents of the file at `STATUS_PATH` to `ready` or `drain` depending on
+what you want **signal-sidecar** to report. It can also be set to `unhealthy`
+for testing purposes, which will force **signal-sidecar** to always report
+unhealthy.
 
 ### flap prevention configuration
 

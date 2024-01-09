@@ -237,7 +237,8 @@ export default class HealthCollector {
             jicofoHealthy &&
             prosodyHealthy &&
             statusFileResult.readable &&
-            parsedStatsFlag // stats file parsed successfully
+            parsedStatsFlag &&        // stats file parsed successfully
+            statusFileResult.contents !== 'unhealthy'
         ) {
             overallhealth = true;
         }
