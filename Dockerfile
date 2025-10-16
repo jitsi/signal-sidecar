@@ -1,4 +1,4 @@
-FROM --platform=$TARGETPLATFORM node:20-alpine
+FROM node:20-alpine
 ARG TARGETPLATFORM
 ARG BUILDPLATFORM
 
