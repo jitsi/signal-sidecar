@@ -1,106 +1,106 @@
 import * as dotenv from 'dotenv';
-import envalid from 'envalid';
+import { cleanEnv, str, num, bool, host } from 'envalid';
 
 dotenv.config();
 
-const env = envalid.cleanEnv(process.env, {
-    HTTP_PORT: envalid.num({
+const env = cleanEnv(process.env, {
+    HTTP_PORT: num({
         desc: 'http port of this service',
         default: 6000,
     }),
-    TCP_PORT: envalid.num({
+    TCP_PORT: num({
         desc: 'tcp port of this service for haproxy',
         default: 6060,
     }),
-    JICOFO_ORIG: envalid.str({
+    JICOFO_ORIG: str({
         desc: 'base url of jicofo health',
         default: 'http://localhost:8888',
     }),
-    JICOFO_DUMP: envalid.str({
+    JICOFO_DUMP: str({
         desc: 'dump script to run if jicofo is unhealthy',
         default: '',
     }),
-    PROSODY_ORIG: envalid.str({
+    PROSODY_ORIG: str({
         desc: 'base url of prosody rest api',
         default: 'http://localhost:5280',
     }),
-    PROSODY_DUMP: envalid.str({
+    PROSODY_DUMP: str({
         desc: 'dump script to run if prosody is unhealthy',
         default: '',
     }),
-    STATUS_PATH: envalid.str({
+    STATUS_PATH: str({
         desc: 'file to indicate ready/drain status of node',
         default: '/etc/jitsi/shard-status',
     }),
-    POLLING_INTERVAL: envalid.num({
+    POLLING_INTERVAL: num({
         desc: 'number of seconds between polling',
         default: 5,
     }),
-    PARTICIPANT_MAX: envalid.num({
+    PARTICIPANT_MAX: num({
         desc: 'report node in drain state if participants exceed this value',
         default: 5000,
     }),
-    WEIGHT_PARTICIPANTS: envalid.bool({
+    WEIGHT_PARTICIPANTS: bool({
         desc: 'send weight via tcp agent based on % of max partipants',
         default: false,
     }),
-    CENSUS_POLL: envalid.bool({
+    CENSUS_POLL: bool({
         desc: 'should the room census be polled?',
         default: false,
     }),
-    CENSUS_HOST: envalid.host({
+    CENSUS_HOST: host({
         desc: 'census conference host name',
         default: 'host.example.com',
     }),
-    CENSUS_REPORTS: envalid.bool({
+    CENSUS_REPORTS: bool({
         desc: 'should consul be used to publish census reports in the signal reports?',
         default: false,
     }),
-    HEALTH_DAMPENING_INTERVAL: envalid.num({
+    HEALTH_DAMPENING_INTERVAL: num({
         desc: 'seconds to wait before report can go healthy after last unhealthy',
         default: 30,
     }),
-    DRAIN_GRACE_INTERVAL: envalid.num({
+    DRAIN_GRACE_INTERVAL: num({
         desc: 'seconds for haproxy agent to report DRAIN before switching to DOWN',
         default: 120,
     }),
-    METRICS: envalid.bool({
+    METRICS: bool({
         desc: 'publish prometheus metrics?',
         default: true,
     }),
-    LOG_LEVEL: envalid.str({
+    LOG_LEVEL: str({
         choices: ['debug', 'info', 'warn', 'error'],
         default: 'info',
     }),
-    CONSUL_HOST: envalid.str({
+    CONSUL_HOST: str({
         desc: 'consul http host',
         default: 'localhost',
     }),
-    CONSUL_PORT: envalid.str({
+    CONSUL_PORT: str({
         desc: 'consul http port',
         default: '8500',
     }),
-    CONSUL_SECURE: envalid.bool({
+    CONSUL_SECURE: bool({
         desc: 'consul https?',
         default: false,
     }),
-    CONSUL_STATUS: envalid.bool({
+    CONSUL_STATUS: bool({
         desc: 'should consul be used to read signal state?',
         default: false,
     }),
-    CONSUL_REPORTS: envalid.bool({
+    CONSUL_REPORTS: bool({
         desc: 'should consul be used to publish signal reports?',
         default: false,
     }),
-    CONSUL_STATUS_KEY: envalid.str({
+    CONSUL_STATUS_KEY: str({
         desc: 'path in consul kv store to read for shard state',
         default: 'shard-state',
     }),
-    CONSUL_REPORT_KEY: envalid.str({
+    CONSUL_REPORT_KEY: str({
         desc: 'path in consul kv store to write reports',
         default: 'shard-report',
     }),
-    CONSUL_REPORTS_INTERVAL: envalid.num({
+    CONSUL_REPORTS_INTERVAL: num({
         desc: 'seconds between writing health report to consul',
         default: 60,
     }),

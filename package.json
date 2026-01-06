@@ -1,6 +1,6 @@
 {
   "name": "signal-sidecar",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "health report sidecar service for jitsi signal nodes",
   "repository": {
     "type": "git",
@@ -12,30 +12,31 @@
   },
   "dependencies": {
     "consul": "aaronkvanmeerten/node-consul",
-    "dotenv": "^8.6.0",
-    "envalid": "^6.0.2",
-    "express": "^4.17.1",
-    "got": "^11.5.1",
-    "jsonwebtoken": "^8.5.1",
+    "dotenv": "^17.2.3",
+    "envalid": "^8.1.1",
+    "express": "^4.21.2",
+    "got": "^11.8.6",
+    "jsonwebtoken": "^9.0.3",
     "node-cache": "^5.1.2",
     "prom-client": "^12.0.0",
     "util": "^0.12.3",
-    "winston": "^3.3.3"
+    "winston": "^3.19.0"
   },
   "devDependencies": {
     "@types/consul": "^0.40.0",
     "@types/express": "^4.17.7",
     "@types/got": "^9.6.11",
-    "@types/jsonwebtoken": "^8.5.0",
-    "@typescript-eslint/eslint-plugin": "^4.23.0",
-    "@typescript-eslint/parser": "^4.0.0",
-    "concurrently": "^5.2.0",
-    "eslint": "^7.5.0",
-    "eslint-config-prettier": "^6.11.0",
-    "eslint-plugin-prettier": "^3.1.4",
-    "nodemon": "^2.0.4",
-    "prettier": "^2.0.5",
-    "typescript": "^3.9.7"
+    "@types/jsonwebtoken": "^9.0.10",
+    "@typescript-eslint/eslint-plugin": "^8.52.0",
+    "@typescript-eslint/parser": "^8.52.0",
+    "concurrently": "^9.2.1",
+    "eslint": "^9.39.2",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.2.1",
+    "nodemon": "^3.1.11",
+    "prettier": "^3.7.4",
+    "typescript": "^5.7.2",
+    "typescript-eslint": "^8.52.0"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",

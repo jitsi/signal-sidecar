@@ -148,7 +148,7 @@ that's returned by the TCP agent.
 
 ## development builds
 
-The current version has been tested with node v16.18.1 and npm v8.19.2
+The current version has been tested with node v16.18.1 and npm v11.6.0
 
 Before making a submission, please run the following so that it's linted properly:
 ```
