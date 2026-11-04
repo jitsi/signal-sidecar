@@ -52,6 +52,21 @@ const prosodySumSquaredParticipantsGauge = new promClient.Gauge({
     help: 'gauge for participant sum squared gauge',
 });
 
+const jicofoHealthLatencyGauge = new promClient.Gauge({
+    name: 'jicofo_health_latency_ms',
+    help: 'wall clock ms the last jicofo health request took, including retries',
+});
+
+const prosodyHealthLatencyGauge = new promClient.Gauge({
+    name: 'prosody_health_latency_ms',
+    help: 'wall clock ms the last prosody http-bind health request took, including retries',
+});
+
+const signalOverloadedGauge = new promClient.Gauge({
+    name: 'signal_overloaded',
+    help: 'gauge for prosody latency overload: draining (1) or not (0)',
+});
+
 export function middleware(req: express.Request, res: express.Response, next: express.NextFunction): void {
     const start = process.hrtime();
     const method = req.method.toLowerCase();
@@ -101,6 +116,9 @@ export default {
     SignalHealthGauge: signalHealthGauge,
     SignalCensusGauge: signalCensusGauge,
     ProsodySumSquaredParticipantsGauge: prosodySumSquaredParticipantsGauge,
+    JicofoHealthLatencyGauge: jicofoHealthLatencyGauge,
+    ProsodyHealthLatencyGauge: prosodyHealthLatencyGauge,
+    SignalOverloadedGauge: signalOverloadedGauge,
     middleware: middleware,
     registerHandler: registerHandler,
 };

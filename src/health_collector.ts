@@ -9,6 +9,8 @@ export interface HealthData {
     timeout: boolean;
     code: number;
     contents: string;
+    // wall clock ms spent on the check, including got's retries and backoff
+    latencyMs: number;
 }
 
 export interface StatusFileData {
@@ -20,6 +22,8 @@ export interface HealthReport {
     time: Date;
     healthy: boolean;
     healthdamped?: boolean;
+    // prosody is answering but slowly; the agent reports drain while this is set
+    overloaded?: boolean;
     status: string;
     weight?: string;
     agentmessage?: string;
@@ -35,6 +39,10 @@ export interface HealthReport {
         prosodyReachable: boolean;
         prosodySoftDown: boolean;
         prosodyStatusCode: number;
+        // wall clock ms each health request took, including retries. a request
+        // that never got an answer still reports the time spent waiting.
+        jicofoLatencyMs: number;
+        prosodyLatencyMs: number;
     };
     statuses: {
         statusFileFound: boolean;
@@ -97,6 +105,8 @@ export default class HealthCollector {
                 prosodyReachable: false,
                 prosodySoftDown: false,
                 prosodyStatusCode: 0,
+                jicofoLatencyMs: 0,
+                prosodyLatencyMs: 0,
             },
             statuses: {
                 statusFileFound: false,
@@ -110,11 +120,12 @@ export default class HealthCollector {
     }
 
     initHealthData(): HealthData {
-        return <HealthData>{ reachable: false, timeout: false, code: 0, contents: '' };
+        return <HealthData>{ reachable: false, timeout: false, code: 0, contents: '', latencyMs: 0 };
     }
 
     async checkHealthHttp(url: string, method = 'GET'): Promise<HealthData> {
         logger.debug('health check of ' + url);
+        const start = Date.now();
         try {
             let got_method = got.get;
             if (method == 'POST') {
@@ -130,6 +141,7 @@ export default class HealthCollector {
                 reachable: true,
                 code: response.statusCode,
                 contents: response.body,
+                latencyMs: Date.now() - start,
             };
         } catch (err) {
             let timeout = false;
@@ -142,6 +154,7 @@ export default class HealthCollector {
                 timeout,
                 code: 0,
                 contents: '',
+                latencyMs: Date.now() - start,
             };
         }
     }
@@ -244,7 +257,7 @@ export default class HealthCollector {
             jicofoHealthy &&
             prosodyHealthy &&
             statusFileResult.readable &&
-            parsedStatsFlag &&        // stats file parsed successfully
+            parsedStatsFlag && // stats file parsed successfully
             statusFileResult.contents !== 'unhealthy'
         ) {
             overallhealth = true;
@@ -268,6 +281,8 @@ export default class HealthCollector {
                 prosodyReachable: prosodyHealth.reachable,
                 prosodySoftDown,
                 prosodyStatusCode: prosodyHealth.code,
+                jicofoLatencyMs: jicofoHealth.latencyMs,
+                prosodyLatencyMs: prosodyHealth.latencyMs,
             },
             statuses: {
                 statusFileFound: statusFileResult.readable,
@@ -278,6 +293,11 @@ export default class HealthCollector {
                 jicofoConferences,
             },
         };
+
+        if (this.collectMetrics) {
+            metrics.JicofoHealthLatencyGauge.set(jicofoHealth.latencyMs);
+            metrics.ProsodyHealthLatencyGauge.set(prosodyHealth.latencyMs);
+        }
 
         if (!overallhealth) {
             logger.warn('updateHealthReport returned unhealthy', { report });

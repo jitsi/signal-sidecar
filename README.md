@@ -54,6 +54,10 @@ they can be set in `/etc/jitsi/signal-sidecar/config`
 * `CENSUS_HOST`: conference host name for census
 * `HEALTH_DAMPENING_INTERVAL`: seconds to wait before report can go healthy [30]
 * `DRAIN_GRACE_INTERVAL`: seconds for tcp agent to report drain instead of down [120]
+* `DAMPENING_REPORTS_DRAIN`: tcp agent reports drain, not down, during the health dampening interval [true]
+* `PROSODY_LATENCY_THRESHOLD`: ms; a prosody http-bind health response slower than this counts as overloaded, 0 disables [500]
+* `PROSODY_LATENCY_SECONDS`: seconds prosody must stay slow before the tcp agent reports drain [10]
+* `PROSODY_LATENCY_RECOVERY_SECONDS`: seconds prosody must stay fast before the tcp agent reports ready again [30]
 * `METRICS`: boolean indicating whether to publish prometheus metrics [true]
 * `LOG_LEVEL`: debug, info, warn, or error [info]
 
@@ -64,24 +68,51 @@ unhealthy.
 
 ### flap prevention configuration
 
-**signal-sidecar** provides two types of flap mitigation:
+**signal-sidecar** provides three types of flap mitigation:
+
+* `PROSODY_LATENCY_THRESHOLD` catches overload before it becomes unhealthy.
+  prosody is single threaded, so a slow answer on `/http-bind` means its event
+  loop is behind and every stanza on the node is waiting. When the health
+  request has taken longer than this many milliseconds (default 500) for
+  `PROSODY_LATENCY_SECONDS` (default 10), the TCP agent reports DRAIN: the rooms
+  already on the node stay, new rooms go elsewhere, and the REST endpoints keep
+  answering healthy because the node is still serving. The agent goes back to
+  READY once the request has been fast for `PROSODY_LATENCY_RECOVERY_SECONDS`
+  (default 30). A request that gets no answer counts as slow for the whole time
+  spent waiting, so a prosody that recovers from timing out is also held in
+  DRAIN for the recovery window. The last measured latency is in the report as
+  `services.prosodyLatencyMs` and exported as the `prosody_health_latency_ms`
+  gauge; `signal_overloaded` is 1 while the agent is draining for this reason.
+  Set the threshold to 0 to disable.
 
 * `HEALTH_DAMPENING_INTERVAL` can be used to prevent the REST endpoint from
   responding with healthy immediately after the signal node is healthy. This can
   be useful for the case where a system is under heavy load and jicofo or
   prosody are going into and out of healthy states. **signal-sidecar** will
   report that it is healthy after the last time a component was detected as
-  being unhealthy plus this interval. Defaults to 30 seconds.
+  being unhealthy plus this interval. Defaults to 30 seconds. While the interval
+  runs the REST endpoints keep answering unhealthy, but the TCP agent reports
+  DRAIN rather than DOWN (`DAMPENING_REPORTS_DRAIN`, default true): the rooms
+  already on the node stay there and only new rooms are held off, instead of
+  every room being moved to another node the moment the components recover.
 
 * `DRAIN_GRACE_INTERVAL` is used to cause the HAProxy TCP agent to back off from
-  marking itself as DOWN immediately upon detecting jicofo as unhealthy. This gives
-  jicofo a chance to recover from load spikes if prosody continues to function.
-  **signal-sidecar** will report DRAIN to the HAProxy from the time that jicofo
-  initially went unhealthy and only begin reporting DOWN after this interval has
-  passed. This must be set higher than `HEALTH_DAMPENING_INTERVAL`, and if it is
-  not, it will be forced higher. Defaults to 2 minutes.
+  marking itself as DOWN immediately upon detecting the node as unhealthy. This
+  gives jicofo and prosody a chance to recover from load spikes. **signal-sidecar**
+  will report DRAIN to the HAProxy from the time that the node initially went
+  unhealthy and only begin reporting DOWN after this interval has passed. This
+  must be set higher than `HEALTH_DAMPENING_INTERVAL`, and if it is not, it will
+  be forced higher. Defaults to 2 minutes.
 
-These are enabled by default and can be disabled by setting them to 0.
+  The grace period applies to a *soft* down, which is what overload looks like:
+  jicofo answers its health check with 503 (test conference timed out) or 500
+  (health check took too long, no health checks performed recently, test
+  conference failed to start) while prosody is healthy or only timing out, or
+  jicofo is healthy while prosody only times out. jicofo not answering at all,
+  or prosody refusing the connection or answering with an error, is a hard down
+  and the agent reports DOWN at once.
+
+All three are enabled by default and can be disabled by setting them to 0.
 
 ## REST endpoints
 

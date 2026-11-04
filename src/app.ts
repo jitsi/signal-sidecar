@@ -93,14 +93,79 @@ let firstTimeWentUnhealthy: number = new Date().valueOf() - (3600000 + config.Dr
 let lastTimeWentUnhealthy: number = new Date().valueOf() - (3600000 + config.HealthDampeningInterval * 1000);
 let firstTimeWentDrained = 0;
 
+/////////////////////////
+// prosody latency overload tracking
+// prosody is single threaded, so a slow answer on /http-bind means its event loop
+// is behind and every stanza on the node is waiting. that is overload before it
+// is unhealthy: hold off new rooms (DRAIN) while it lasts, keep the rooms that are
+// already here, and only go back to READY once prosody has answered quickly for
+// PROSODY_LATENCY_RECOVERY_SECONDS. a poll that gets no answer at all counts as
+// slow. the windows are wall clock, measured from the start of the first slow or
+// fast poll, because a poll that times out takes several times the polling
+// interval and has to count for all of it.
+let prosodySlowSince: number;
+let prosodyFastSince: number;
+let prosodyOverloaded = false;
+
+function trackProsodyLatency(report: HealthReport) {
+    if (config.ProsodyLatencyThreshold <= 0) {
+        return;
+    }
+    const services = report.services;
+    const now = new Date().valueOf();
+    const pollStart = now - services.prosodyLatencyMs;
+    const slow = !services.prosodyReachable || services.prosodyLatencyMs > config.ProsodyLatencyThreshold;
+    if (slow) {
+        prosodySlowSince = prosodySlowSince ?? pollStart;
+        prosodyFastSince = undefined;
+    } else {
+        prosodyFastSince = prosodyFastSince ?? pollStart;
+        prosodySlowSince = undefined;
+    }
+
+    const latency = {
+        latencyMs: services.prosodyLatencyMs,
+        reachable: services.prosodyReachable,
+        thresholdMs: config.ProsodyLatencyThreshold,
+    };
+    if (!prosodyOverloaded && slow && now - prosodySlowSince >= config.ProsodyLatencySeconds * 1000) {
+        prosodyOverloaded = true;
+        logger.warn('prosody overloaded: http-bind latency over threshold, tcp agent reporting drain', {
+            ...latency,
+            slowSeconds: (now - prosodySlowSince) / 1000,
+        });
+    } else if (prosodyOverloaded && !slow && now - prosodyFastSince >= config.ProsodyLatencyRecoverySeconds * 1000) {
+        prosodyOverloaded = false;
+        logger.info('prosody overload cleared: http-bind latency back under threshold', {
+            ...latency,
+            fastSeconds: (now - prosodyFastSince) / 1000,
+        });
+    }
+    if (config.Metrics) {
+        metrics.SignalOverloadedGauge.set(prosodyOverloaded ? 1 : 0);
+    }
+}
+
 function healthReportRightNow() {
     const nowHealthReport = <HealthReport>JSON.parse(JSON.stringify(healthReport));
+    nowHealthReport.overloaded = prosodyOverloaded;
     if (nowHealthReport.healthy) {
         // basic health report is good, now check that we're not in the health dampening interval
         if (checkHealthDampeningPeriod()) {
             // report unhealthy until we exit the health dampening interval
             nowHealthReport.healthy = false;
             nowHealthReport.healthdamped = true;
+            if (config.DampeningReportsDrain) {
+                // jicofo and prosody are back. DRAIN keeps the rooms that are already
+                // here on this node and only holds off new ones until the interval ends;
+                // DOWN would move every room away and start a reconnect storm elsewhere.
+                nowHealthReport.agentmessage = tcpAgentMessage({ ...nowHealthReport, healthy: true, status: 'drain' });
+                return nowHealthReport;
+            }
+        } else if (prosodyOverloaded && nowHealthReport.status !== 'maint') {
+            // healthy but prosody is slow: still serving, so REST stays healthy, but
+            // the tcp agent holds off new rooms until the latency has recovered
+            nowHealthReport.status = 'drain';
         }
     } else {
         // unhealthy, check if we are in the drain grace period
@@ -129,24 +194,24 @@ function checkHealthDampeningPeriod(): boolean {
     return lastTimeWentUnhealthy + config.HealthDampeningInterval * 1000 >= new Date().valueOf();
 }
 
-// jicofo is soft down (503 error) AND/OR
-// prosody is soft down (timeout instead of error)
+// soft down means the node is slow or overloaded rather than broken, so the
+// drain grace period applies. that is the case when:
+// - jicofo answers its health check but not with 200: 503 (test conference
+//   timed out) or 500 (health check took too long, no health checks performed
+//   recently, test conference failed to start), and prosody is healthy or
+//   only timing out; or
+// - jicofo is healthy and prosody is only timing out.
+// jicofo not answering at all, or prosody answering with an error or refusing
+// the connection, is a hard down and goes straight to DOWN.
 function checkSoftDown(checkHealthReport: HealthReport): boolean {
-    if (checkHealthReport.services.jicofoSoftDown) {
-        if (checkHealthReport.services.prosodySoftDown) {
-            // both prosody and jicofo are in soft down, so grace period applies
-            return true;
-        } else {
-            if (checkHealthReport.services.prosodyHealthy) {
-                // only jicofo is in soft down, so grace period applies
-                return true;
-            }
-        }
-    } else {
-        if (checkHealthReport.services.jicofoHealthy && checkHealthReport.services.prosodySoftDown) {
-            // jicofo is healthy and prosody is soft down so grace period applies
-            return true;
-        }
+    const services = checkHealthReport.services;
+    const prosodySlowOrHealthy = services.prosodyHealthy || services.prosodySoftDown;
+    const jicofoSlow = services.jicofoSoftDown || (services.jicofoReachable && !services.jicofoHealthy);
+    if (jicofoSlow && prosodySlowOrHealthy) {
+        return true;
+    }
+    if (services.jicofoHealthy && services.prosodySoftDown) {
+        return true;
     }
     return false;
 }
@@ -181,6 +246,8 @@ async function pollForHealth() {
             newHealthReport.stats = Object.assign({}, newHealthReport.stats, censusStats);
         }
 
+        trackProsodyLatency(newHealthReport);
+
         // dampen health coming back up too quickly
         if (newHealthReport.healthy) {
             lastTimeWentHealthy = new Date().valueOf(); // track when/if ever went healthy
@@ -195,7 +262,7 @@ async function pollForHealth() {
             }
 
             firstTimeWentUnhealthy = new Date().valueOf(); // track when a reported state change to unhealthy began
-            logger.info('signal node state changed from healthy to unhealthy');
+            logger.info('signal node state changed from healthy to unhealthy', { services: newHealthReport.services });
 
             if (checkSoftDown(newHealthReport)) {
                 logger.info('signal node state is soft down');
