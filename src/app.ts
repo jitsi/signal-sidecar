@@ -93,8 +93,62 @@ let firstTimeWentUnhealthy: number = new Date().valueOf() - (3600000 + config.Dr
 let lastTimeWentUnhealthy: number = new Date().valueOf() - (3600000 + config.HealthDampeningInterval * 1000);
 let firstTimeWentDrained = 0;
 
+/////////////////////////
+// prosody latency overload tracking
+// prosody is single threaded, so a slow answer on /http-bind means its event loop
+// is behind and every stanza on the node is waiting. that is overload before it
+// is unhealthy: hold off new rooms (DRAIN) while it lasts, keep the rooms that are
+// already here, and only go back to READY once prosody has answered quickly for
+// PROSODY_LATENCY_RECOVERY_SECONDS. a poll that gets no answer at all counts as
+// slow. the windows are wall clock, measured from the start of the first slow or
+// fast poll, because a poll that times out takes several times the polling
+// interval and has to count for all of it.
+let prosodySlowSince: number;
+let prosodyFastSince: number;
+let prosodyOverloaded = false;
+
+function trackProsodyLatency(report: HealthReport) {
+    if (config.ProsodyLatencyThreshold <= 0) {
+        return;
+    }
+    const services = report.services;
+    const now = new Date().valueOf();
+    const pollStart = now - services.prosodyLatencyMs;
+    const slow = !services.prosodyReachable || services.prosodyLatencyMs > config.ProsodyLatencyThreshold;
+    if (slow) {
+        prosodySlowSince = prosodySlowSince ?? pollStart;
+        prosodyFastSince = undefined;
+    } else {
+        prosodyFastSince = prosodyFastSince ?? pollStart;
+        prosodySlowSince = undefined;
+    }
+
+    const latency = {
+        latencyMs: services.prosodyLatencyMs,
+        reachable: services.prosodyReachable,
+        thresholdMs: config.ProsodyLatencyThreshold,
+    };
+    if (!prosodyOverloaded && slow && now - prosodySlowSince >= config.ProsodyLatencySeconds * 1000) {
+        prosodyOverloaded = true;
+        logger.warn('prosody overloaded: http-bind latency over threshold, tcp agent reporting drain', {
+            ...latency,
+            slowSeconds: (now - prosodySlowSince) / 1000,
+        });
+    } else if (prosodyOverloaded && !slow && now - prosodyFastSince >= config.ProsodyLatencyRecoverySeconds * 1000) {
+        prosodyOverloaded = false;
+        logger.info('prosody overload cleared: http-bind latency back under threshold', {
+            ...latency,
+            fastSeconds: (now - prosodyFastSince) / 1000,
+        });
+    }
+    if (config.Metrics) {
+        metrics.SignalOverloadedGauge.set(prosodyOverloaded ? 1 : 0);
+    }
+}
+
 function healthReportRightNow() {
     const nowHealthReport = <HealthReport>JSON.parse(JSON.stringify(healthReport));
+    nowHealthReport.overloaded = prosodyOverloaded;
     if (nowHealthReport.healthy) {
         // basic health report is good, now check that we're not in the health dampening interval
         if (checkHealthDampeningPeriod()) {
@@ -108,6 +162,10 @@ function healthReportRightNow() {
                 nowHealthReport.agentmessage = tcpAgentMessage({ ...nowHealthReport, healthy: true, status: 'drain' });
                 return nowHealthReport;
             }
+        } else if (prosodyOverloaded && nowHealthReport.status !== 'maint') {
+            // healthy but prosody is slow: still serving, so REST stays healthy, but
+            // the tcp agent holds off new rooms until the latency has recovered
+            nowHealthReport.status = 'drain';
         }
     } else {
         // unhealthy, check if we are in the drain grace period
@@ -187,6 +245,8 @@ async function pollForHealth() {
             }
             newHealthReport.stats = Object.assign({}, newHealthReport.stats, censusStats);
         }
+
+        trackProsodyLatency(newHealthReport);
 
         // dampen health coming back up too quickly
         if (newHealthReport.healthy) {

@@ -68,6 +68,18 @@ const env = envalid.cleanEnv(process.env, {
         desc: 'report DRAIN instead of DOWN to the haproxy agent while in the health dampening interval',
         default: true,
     }),
+    PROSODY_LATENCY_THRESHOLD: envalid.num({
+        desc: 'ms; a prosody http-bind health response slower than this counts as overloaded, 0 disables',
+        default: 500,
+    }),
+    PROSODY_LATENCY_SECONDS: envalid.num({
+        desc: 'seconds prosody must stay slow before the haproxy agent reports DRAIN for overload',
+        default: 10,
+    }),
+    PROSODY_LATENCY_RECOVERY_SECONDS: envalid.num({
+        desc: 'seconds prosody must stay fast before the haproxy agent stops reporting DRAIN for overload',
+        default: 30,
+    }),
     METRICS: envalid.bool({
         desc: 'publish prometheus metrics?',
         default: true,
@@ -127,6 +139,9 @@ const out = {
     HealthDampeningInterval: env.HEALTH_DAMPENING_INTERVAL,
     DrainGraceInterval: <number>env.DRAIN_GRACE_INTERVAL,
     DampeningReportsDrain: env.DAMPENING_REPORTS_DRAIN,
+    ProsodyLatencyThreshold: env.PROSODY_LATENCY_THRESHOLD,
+    ProsodyLatencySeconds: env.PROSODY_LATENCY_SECONDS,
+    ProsodyLatencyRecoverySeconds: env.PROSODY_LATENCY_RECOVERY_SECONDS,
     Metrics: env.METRICS,
     LogLevel: env.LOG_LEVEL,
     ConsulHost: env.CONSUL_HOST,
