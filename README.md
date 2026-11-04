@@ -77,6 +77,10 @@ unhealthy.
   DRAIN rather than DOWN (`DAMPENING_REPORTS_DRAIN`, default true): the rooms
   already on the node stay there and only new rooms are held off, instead of
   every room being moved to another node the moment the components recover.
+  A soft down (see below) that recovers inside the grace period keeps the REST
+  endpoints healthy, but the TCP agent still reports DRAIN for this interval
+  after the last unhealthy poll. A `maint` status file is reported as MAINT,
+  never DRAIN.
 
 * `DRAIN_GRACE_INTERVAL` is used to cause the HAProxy TCP agent to back off from
   marking itself as DOWN immediately upon detecting the node as unhealthy. This
@@ -84,15 +88,19 @@ unhealthy.
   will report DRAIN to the HAProxy from the time that the node initially went
   unhealthy and only begin reporting DOWN after this interval has passed. This
   must be set higher than `HEALTH_DAMPENING_INTERVAL`, and if it is not, it will
-  be forced higher. Defaults to 2 minutes.
+  be forced higher. Defaults to 2 minutes. If the node goes unhealthy again
+  within `HEALTH_DAMPENING_INTERVAL` of its last unhealthy poll, the grace
+  period keeps counting from the first unhealthy poll, so a flapping node still
+  reaches DOWN.
 
   The grace period applies to a *soft* down, which is what overload looks like:
   jicofo answers its health check with 503 (test conference timed out) or 500
   (health check took too long, no health checks performed recently, test
   conference failed to start) while prosody is healthy or only timing out, or
-  jicofo is healthy while prosody only times out. jicofo not answering at all,
-  or prosody refusing the connection or answering with an error, is a hard down
-  and the agent reports DOWN at once.
+  jicofo is healthy while prosody only times out. Any other jicofo answer, jicofo
+  not answering at all, prosody refusing the connection or answering with an
+  error, or a status file set to `unhealthy`, is a hard down and the agent
+  reports DOWN at once.
 
 These are enabled by default and can be disabled by setting them to 0.
 
