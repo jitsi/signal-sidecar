@@ -65,7 +65,7 @@ const env = envalid.cleanEnv(process.env, {
         default: 120,
     }),
     DAMPENING_REPORTS_DRAIN: envalid.bool({
-        desc: 'report DRAIN instead of DOWN to the haproxy agent while in the health dampening interval',
+        desc: 'report DRAIN instead of DOWN (or READY after a soft down) to the haproxy agent while in the health dampening interval',
         default: true,
     }),
     METRICS: envalid.bool({

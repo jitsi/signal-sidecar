@@ -95,9 +95,9 @@ let firstTimeWentDrained = 0;
 
 function healthReportRightNow() {
     const nowHealthReport = <HealthReport>JSON.parse(JSON.stringify(healthReport));
+    // an operator's maint must win over any drain the sidecar adds
+    const drainStatus = nowHealthReport.status === 'maint' ? 'maint' : 'drain';
     if (nowHealthReport.healthy) {
-        // an operator's maint must win over any drain the sidecar adds
-        const drainStatus = nowHealthReport.status === 'maint' ? 'maint' : 'drain';
         // basic health report is good, now check that we're not in the health dampening interval
         if (checkHealthDampeningPeriod()) {
             // report unhealthy until we exit the health dampening interval
@@ -112,9 +112,9 @@ function healthReportRightNow() {
                 return nowHealthReport;
             }
         } else if (config.DampeningReportsDrain && checkInDampeningInterval()) {
-            // a soft down that recovered inside the grace period: REST stayed healthy
-            // through it and stays healthy now, but the agent holds off new rooms for the
-            // interval so an overloaded node does not take them the moment it answers again
+            // a soft down that recovered inside the grace period skips REST dampening, but
+            // the agent holds off new rooms for the interval so an overloaded node does not
+            // take them the moment it answers again
             nowHealthReport.status = drainStatus;
         }
     } else {
@@ -122,7 +122,7 @@ function healthReportRightNow() {
         if (checkDrainGracePeriod()) {
             logger.warn('in drain grace period: reporting health / drain despite jicofo unhealthy');
             nowHealthReport.healthy = true;
-            nowHealthReport.status = 'drain';
+            nowHealthReport.status = drainStatus;
             nowHealthReport.healthdamped = true;
         }
     }
@@ -227,7 +227,7 @@ async function pollForHealth() {
             }
 
             if (newEpisode) {
-                firstTimeWentUnhealthy = lastTimeWentUnhealthy; // track when a reported state change to unhealthy began
+                firstTimeWentUnhealthy = lastTimeWentUnhealthy; // track when the unhealthy episode began
             }
             logger.info('signal node state changed from healthy to unhealthy', {
                 services: newHealthReport.services,

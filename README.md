@@ -54,7 +54,7 @@ they can be set in `/etc/jitsi/signal-sidecar/config`
 * `CENSUS_HOST`: conference host name for census
 * `HEALTH_DAMPENING_INTERVAL`: seconds to wait before report can go healthy [30]
 * `DRAIN_GRACE_INTERVAL`: seconds for tcp agent to report drain instead of down [120]
-* `DAMPENING_REPORTS_DRAIN`: tcp agent reports drain, not down, during the health dampening interval [true]
+* `DAMPENING_REPORTS_DRAIN`: tcp agent reports drain, not down (or ready after a soft down), during the health dampening interval [true]
 * `METRICS`: boolean indicating whether to publish prometheus metrics [true]
 * `LOG_LEVEL`: debug, info, warn, or error [info]
 
