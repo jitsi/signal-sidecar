@@ -101,6 +101,13 @@ function healthReportRightNow() {
             // report unhealthy until we exit the health dampening interval
             nowHealthReport.healthy = false;
             nowHealthReport.healthdamped = true;
+            if (config.DampeningReportsDrain) {
+                // jicofo and prosody are back. DRAIN keeps the rooms that are already
+                // here on this node and only holds off new ones until the interval ends;
+                // DOWN would move every room away and start a reconnect storm elsewhere.
+                nowHealthReport.agentmessage = tcpAgentMessage({ ...nowHealthReport, healthy: true, status: 'drain' });
+                return nowHealthReport;
+            }
         }
     } else {
         // unhealthy, check if we are in the drain grace period
@@ -129,24 +136,24 @@ function checkHealthDampeningPeriod(): boolean {
     return lastTimeWentUnhealthy + config.HealthDampeningInterval * 1000 >= new Date().valueOf();
 }
 
-// jicofo is soft down (503 error) AND/OR
-// prosody is soft down (timeout instead of error)
+// soft down means the node is slow or overloaded rather than broken, so the
+// drain grace period applies. that is the case when:
+// - jicofo answers its health check but not with 200: 503 (test conference
+//   timed out) or 500 (health check took too long, no health checks performed
+//   recently, test conference failed to start), and prosody is healthy or
+//   only timing out; or
+// - jicofo is healthy and prosody is only timing out.
+// jicofo not answering at all, or prosody answering with an error or refusing
+// the connection, is a hard down and goes straight to DOWN.
 function checkSoftDown(checkHealthReport: HealthReport): boolean {
-    if (checkHealthReport.services.jicofoSoftDown) {
-        if (checkHealthReport.services.prosodySoftDown) {
-            // both prosody and jicofo are in soft down, so grace period applies
-            return true;
-        } else {
-            if (checkHealthReport.services.prosodyHealthy) {
-                // only jicofo is in soft down, so grace period applies
-                return true;
-            }
-        }
-    } else {
-        if (checkHealthReport.services.jicofoHealthy && checkHealthReport.services.prosodySoftDown) {
-            // jicofo is healthy and prosody is soft down so grace period applies
-            return true;
-        }
+    const services = checkHealthReport.services;
+    const prosodySlowOrHealthy = services.prosodyHealthy || services.prosodySoftDown;
+    const jicofoSlow = services.jicofoSoftDown || (services.jicofoReachable && !services.jicofoHealthy);
+    if (jicofoSlow && prosodySlowOrHealthy) {
+        return true;
+    }
+    if (services.jicofoHealthy && services.prosodySoftDown) {
+        return true;
     }
     return false;
 }
@@ -195,7 +202,7 @@ async function pollForHealth() {
             }
 
             firstTimeWentUnhealthy = new Date().valueOf(); // track when a reported state change to unhealthy began
-            logger.info('signal node state changed from healthy to unhealthy');
+            logger.info('signal node state changed from healthy to unhealthy', { services: newHealthReport.services });
 
             if (checkSoftDown(newHealthReport)) {
                 logger.info('signal node state is soft down');

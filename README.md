@@ -54,6 +54,7 @@ they can be set in `/etc/jitsi/signal-sidecar/config`
 * `CENSUS_HOST`: conference host name for census
 * `HEALTH_DAMPENING_INTERVAL`: seconds to wait before report can go healthy [30]
 * `DRAIN_GRACE_INTERVAL`: seconds for tcp agent to report drain instead of down [120]
+* `DAMPENING_REPORTS_DRAIN`: tcp agent reports drain, not down, during the health dampening interval [true]
 * `METRICS`: boolean indicating whether to publish prometheus metrics [true]
 * `LOG_LEVEL`: debug, info, warn, or error [info]
 
@@ -71,15 +72,27 @@ unhealthy.
   be useful for the case where a system is under heavy load and jicofo or
   prosody are going into and out of healthy states. **signal-sidecar** will
   report that it is healthy after the last time a component was detected as
-  being unhealthy plus this interval. Defaults to 30 seconds.
+  being unhealthy plus this interval. Defaults to 30 seconds. While the interval
+  runs the REST endpoints keep answering unhealthy, but the TCP agent reports
+  DRAIN rather than DOWN (`DAMPENING_REPORTS_DRAIN`, default true): the rooms
+  already on the node stay there and only new rooms are held off, instead of
+  every room being moved to another node the moment the components recover.
 
 * `DRAIN_GRACE_INTERVAL` is used to cause the HAProxy TCP agent to back off from
-  marking itself as DOWN immediately upon detecting jicofo as unhealthy. This gives
-  jicofo a chance to recover from load spikes if prosody continues to function.
-  **signal-sidecar** will report DRAIN to the HAProxy from the time that jicofo
-  initially went unhealthy and only begin reporting DOWN after this interval has
-  passed. This must be set higher than `HEALTH_DAMPENING_INTERVAL`, and if it is
-  not, it will be forced higher. Defaults to 2 minutes.
+  marking itself as DOWN immediately upon detecting the node as unhealthy. This
+  gives jicofo and prosody a chance to recover from load spikes. **signal-sidecar**
+  will report DRAIN to the HAProxy from the time that the node initially went
+  unhealthy and only begin reporting DOWN after this interval has passed. This
+  must be set higher than `HEALTH_DAMPENING_INTERVAL`, and if it is not, it will
+  be forced higher. Defaults to 2 minutes.
+
+  The grace period applies to a *soft* down, which is what overload looks like:
+  jicofo answers its health check with 503 (test conference timed out) or 500
+  (health check took too long, no health checks performed recently, test
+  conference failed to start) while prosody is healthy or only timing out, or
+  jicofo is healthy while prosody only times out. jicofo not answering at all,
+  or prosody refusing the connection or answering with an error, is a hard down
+  and the agent reports DOWN at once.
 
 These are enabled by default and can be disabled by setting them to 0.
 
