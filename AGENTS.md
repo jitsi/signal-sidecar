@@ -38,6 +38,7 @@ The node must be healthy for at least 1 poll before a test starts, because the d
 - After a good build, the workflow creates the tag and the GitHub release. The release gets the `.deb`, `.changes`, `.buildinfo`, `SHA256SUMS` and a build provenance bundle.
 - The workflow never replaces a file on an existing release. A manual run can rebuild an existing tag that has no files yet.
 - A Jitsi release job downloads the release, verifies it, and publishes it to the Jitsi apt repository.
+- After the deb, the workflow pushes `ghcr.io/jitsi/signal-sidecar` for amd64 and arm64, with tags `<version>` and `<major>.<minor>`. A merge also moves `latest`. An image version that already exists is not replaced.
 
 ## Packaging
 
@@ -46,7 +47,8 @@ The node must be healthy for at least 1 poll before a test starts, because the d
   - The systemd unit reads its environment from `/etc/jitsi/signal-sidecar/config`.
   - `debian/rules` runs `npm install` and `npm run build`.
 - **Container**: the `Dockerfile` copies `dist/`, so run `npm run build` first.
-  - `build/build.sh` builds `jitsi/signal-sidecar` for amd64 and arm64 and pushes it. Set `TAG` before you run it.
+  - The release workflow builds and pushes the image to GHCR. See "Versions and releases".
+  - `build/build.sh` is the older manual build. It pushes `jitsi/signal-sidecar` to Docker Hub. Set `TAG` before you run it.
   - `build/run.sh` sources `/usr/jitsi/pre-run.sh` if it exists, then starts the app.
 
 ## Architecture
@@ -130,4 +132,4 @@ These do not match the code. Do not rely on them.
 - `src/config.ts`: environment variables and defaults
 - `src/logger.ts`: winston logger, JSON to the console
 - `debian/`, `Dockerfile`, `build/`: packaging
-- `.github/workflows/build-deb.yml`: deb build and GitHub release
+- `.github/workflows/build-deb.yml`: deb build, GitHub release and container image
