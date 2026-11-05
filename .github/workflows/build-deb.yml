@@ -102,7 +102,8 @@ jobs:
       # the release and its tag are created only after a good build, so a failed build
       # leaves no tag and the next merge tries the same version again.
       # the bundle lets jenkins run gh attestation verify --bundle without a GitHub token.
-      # no --clobber: a version that is already published must never be replaced
+      # a version that is already published must never be replaced. a release that already
+      # has every file is left as it is, so a manual run can still go on to build the image
       - name: Attach the package to the release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -112,4 +113,95 @@ jobs:
           if ! gh release view "$TAG" > /dev/null 2>&1; then
             gh release create "$TAG" --target "$(git rev-parse HEAD)" --title "$TAG" --generate-notes
           fi
-          gh release upload "$TAG" out/*
+          EXISTING="$(gh release view "$TAG" --json assets -q '.assets[].name')"
+          FOUND=0
+          TOTAL=0
+          for f in out/*; do
+            TOTAL=$((TOTAL + 1))
+            if grep -qxF "$(basename "$f")" <<< "$EXISTING"; then
+              FOUND=$((FOUND + 1))
+            fi
+          done
+          if [ "$FOUND" -eq "$TOTAL" ]; then
+            echo "::notice::$TAG already has all its files. They were not replaced."
+          elif [ "$FOUND" -gt 0 ]; then
+            echo "::error::$TAG has $FOUND of $TOTAL files. Fix the release by hand."
+            exit 1
+          else
+            gh release upload "$TAG" out/*
+          fi
+
+  build-image:
+    needs: [version, build-deb]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
+    env:
+      IMAGE_NAME: ghcr.io/jitsi/signal-sidecar
+      TAG: ${{ needs.version.outputs.tag }}
+      VERSION: ${{ needs.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+        with:
+          ref: ${{ inputs.tag || github.sha }}
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020  # v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      # the Dockerfile copies ./dist, so build the app first
+      - run: npm ci
+      - run: npm run build
+
+      - uses: docker/setup-qemu-action@49b3bc8e6bdd4a60e6116a5414239cba5943d3cf  # v3
+
+      - uses: docker/setup-buildx-action@b5ca514318bd6ebac0fb2aedd5d36ec1b5c232a2  # v3
+
+      - uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772  # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      # like the deb, a published image version must never be replaced
+      - name: Check for an existing image
+        id: existing
+        run: |
+          if docker buildx imagetools inspect "$IMAGE_NAME:$VERSION" > /dev/null 2>&1; then
+            echo "::notice::$IMAGE_NAME:$VERSION already exists. It was not replaced."
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - id: meta
+        if: steps.existing.outputs.exists != 'true'
+        uses: docker/metadata-action@902fa8ec7d6ecbf8d84d538b9b233a880e428804  # v5
+        with:
+          images: ${{ env.IMAGE_NAME }}
+          # a manual run rebuilds an older tag, so it must not move latest
+          tags: |
+            type=semver,pattern={{version}},value=${{ env.TAG }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ env.TAG }}
+            type=raw,value=latest,enable=${{ github.event_name == 'push' }}
+
+      - id: push
+        if: steps.existing.outputs.exists != 'true'
+        uses: docker/build-push-action@471d1dc4e07e5cdedd4c2171150001c434f0b7a4  # v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - if: steps.existing.outputs.exists != 'true'
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-name: ${{ env.IMAGE_NAME }}
+          subject-digest: ${{ steps.push.outputs.digest }}
+          push-to-registry: true
