@@ -2,12 +2,12 @@ name: Build deb
 
 on:
   push:
-    tags:
-      - 'v*'
+    branches:
+      - main
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Existing tag to build, for example v0.4.0'
+        description: 'Existing tag to rebuild, for example v0.4.0'
         required: true
 
 permissions:
@@ -15,15 +15,56 @@ permissions:
   id-token: write
   attestations: write
 
+concurrency:
+  group: build-deb
+  cancel-in-progress: false
+
 jobs:
-  build-deb:
+  version:
     runs-on: ubuntu-24.04
-    env:
-      TAG: ${{ inputs.tag || github.ref_name }}
+    outputs:
+      release: ${{ steps.version.outputs.release }}
+      tag: ${{ steps.version.outputs.tag }}
+      version: ${{ steps.version.outputs.version }}
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ env.TAG }}
+          ref: ${{ inputs.tag || github.sha }}
+
+      # a merge releases only when package.json has a version that has no tag yet
+      - id: version
+        env:
+          INPUT_TAG: ${{ inputs.tag }}
+        run: |
+          VERSION="$(node -p "require('./package.json').version")"
+          TAG="v$VERSION"
+          RELEASE=true
+          if [ -n "$INPUT_TAG" ]; then
+            if [ "$INPUT_TAG" != "$TAG" ]; then
+              echo "::error::tag $INPUT_TAG does not match package.json version $VERSION"
+              exit 1
+            fi
+          elif git ls-remote --exit-code --tags origin "refs/tags/$TAG" > /dev/null; then
+            echo "::notice::$TAG already exists. Bump the version in package.json to release a new deb."
+            RELEASE=false
+          fi
+          {
+            echo "release=$RELEASE"
+            echo "tag=$TAG"
+            echo "version=$VERSION"
+          } >> "$GITHUB_OUTPUT"
+
+  build-deb:
+    needs: version
+    if: needs.version.outputs.release == 'true'
+    runs-on: ubuntu-24.04
+    env:
+      TAG: ${{ needs.version.outputs.tag }}
+      VERSION: ${{ needs.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.sha }}
 
       - uses: actions/setup-node@v4
         with:
@@ -31,16 +72,6 @@ jobs:
 
       - name: Install packaging tools
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends debhelper devscripts fakeroot
-
-      - name: Check that the tag matches package.json
-        run: |
-          VERSION="${TAG#v}"
-          PKG_VERSION="$(node -p "require('./package.json').version")"
-          if [ "$VERSION" != "$PKG_VERSION" ]; then
-            echo "::error::tag $TAG does not match package.json version $PKG_VERSION"
-            exit 1
-          fi
-          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
 
       # the epoch keeps semver releases above the old CI's integer versions (up to 75-1)
       - name: Set the package version
@@ -68,6 +99,8 @@ jobs:
             out/*.changes
             out/*.buildinfo
 
+      # the release and its tag are created only after a good build, so a failed build
+      # leaves no tag and the next merge tries the same version again.
       # the bundle lets jenkins run gh attestation verify --bundle without a GitHub token.
       # no --clobber: a version that is already published must never be replaced
       - name: Attach the package to the release
@@ -77,6 +110,6 @@ jobs:
         run: |
           cp "$BUNDLE" out/attestation.sigstore.json
           if ! gh release view "$TAG" > /dev/null 2>&1; then
-            gh release create "$TAG" --verify-tag --title "$TAG" --generate-notes
+            gh release create "$TAG" --target "$(git rev-parse HEAD)" --title "$TAG" --generate-notes
           fi
           gh release upload "$TAG" out/*
