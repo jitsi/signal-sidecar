@@ -1,6 +1,6 @@
 # AGENTS.md
 
-This file gives guidance to coding agents for work in this repository. `CLAUDE.md` imports it for Claude Code.
+This file gives guidance to coding agents for work in this repository.
 
 ## Build and run
 
