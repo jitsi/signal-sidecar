@@ -54,7 +54,7 @@ they can be set in `/etc/jitsi/signal-sidecar/config`
 * `CENSUS_HOST`: conference host name for census
 * `HEALTH_DAMPENING_INTERVAL`: seconds to wait before report can go healthy [30]
 * `DRAIN_GRACE_INTERVAL`: seconds for tcp agent to report drain instead of down [120]
-* `DAMPENING_REPORTS_DRAIN`: tcp agent reports drain, not down (or ready after a soft down), during the health dampening interval [true]
+* `DAMPENING_REPORTS_DRAIN`: tcp agent reports drain instead of down, or instead of ready after a soft down, during the health dampening interval [true]
 * `METRICS`: boolean indicating whether to publish prometheus metrics [true]
 * `LOG_LEVEL`: debug, info, warn, or error [info]
 
@@ -75,10 +75,10 @@ unhealthy. The value is not case-sensitive. The report shows it in lowercase.
   being unhealthy plus this interval. Defaults to 30 seconds. While the interval
   runs the REST endpoints keep answering unhealthy, but the TCP agent reports
   DRAIN rather than DOWN (`DAMPENING_REPORTS_DRAIN`, default true): the rooms
-  already on the node stay there and only new rooms are held off, instead of
-  every room being moved to another node the moment the components recover.
-  A soft down (see below) that recovers inside the grace period keeps the REST
-  endpoints healthy, but the TCP agent still reports DRAIN for this interval
+  already on the node stay there and only new rooms are held off. DOWN would
+  move those rooms to another node. A soft down (see below) that recovers inside
+  the grace period keeps the REST endpoints healthy. With
+  `DAMPENING_REPORTS_DRAIN`, the TCP agent still reports DRAIN for this interval
   after the last unhealthy poll. A `maint` status file is reported as MAINT,
   never DRAIN.
 
@@ -92,16 +92,18 @@ unhealthy. The value is not case-sensitive. The report shows it in lowercase.
   within `HEALTH_DAMPENING_INTERVAL` of its last unhealthy poll, the grace
   period keeps counting from the first unhealthy poll, so a flapping node still
   reaches DOWN. DOWN is not sticky: after the grace period, each unhealthy poll
-  reports DOWN and each healthy poll reports DRAIN for the dampening interval.
+  reports DOWN. With `DAMPENING_REPORTS_DRAIN`, each healthy poll reports DRAIN
+  for the dampening interval.
 
   The grace period applies to a *soft* down, which is what overload looks like:
   jicofo answers its health check with 503 (test conference timed out) or 500
   (health check took too long, no health checks performed recently, test
   conference failed to start) while prosody is healthy or only timing out, or
-  jicofo is healthy while prosody only times out. Any other jicofo answer, jicofo
-  not answering at all, prosody refusing the connection or answering with an
-  error, or a status file set to `unhealthy`, is a hard down and the agent
-  reports DOWN at once.
+  jicofo is healthy while prosody only times out. Here jicofo is healthy when
+  `/about/health` and `/stats` both answer 200. Every other unhealthy state is a
+  hard down and the agent reports DOWN at once. Examples: any other jicofo
+  answer, jicofo not answering at all, prosody refusing the connection or
+  answering with an error, or a status file set to `unhealthy`.
 
 These are enabled by default and can be disabled by setting them to 0.
 

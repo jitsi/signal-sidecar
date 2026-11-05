@@ -155,10 +155,12 @@ function checkInDampeningInterval(): boolean {
 //   500 (health check took too long, no health checks performed recently,
 //   test conference failed to start), and prosody is healthy or only timing
 //   out; or
-// - jicofo is healthy and prosody is only timing out.
-// any other jicofo answer, jicofo not answering at all, prosody answering with
-// an error or refusing the connection, or a status file forced to unhealthy, is
-// a hard down and goes straight to DOWN.
+// - jicofo is healthy (/about/health and /stats both 200) and prosody is only
+//   timing out.
+// every other unhealthy state is a hard down and goes straight to DOWN, for
+// example any other jicofo answer, jicofo not answering at all, prosody
+// answering with an error or refusing the connection, or a status file forced
+// to unhealthy.
 function checkSoftDown(checkHealthReport: HealthReport): boolean {
     if (checkHealthReport.statuses.statusFileContents === 'unhealthy') {
         return false;
