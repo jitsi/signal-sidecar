@@ -153,7 +153,7 @@ export default class HealthCollector {
         try {
             const data = readFileSync(filePath, 'utf8');
             readable = true;
-            contents = data.trim();
+            contents = data.trim().toLowerCase();
         } catch (err) {
             logger.warn('health_collector readStatusFile failed', { err, path: filePath });
         }

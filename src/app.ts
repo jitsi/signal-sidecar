@@ -66,8 +66,7 @@ let healthReport = initHealthReport;
 let pollHealthy = true; // suppress state change log on restart
 
 export function calculateWeight(nodeStatus: string, currentParticipants: number): string {
-    const status = nodeStatus.toLowerCase();
-    if (status === 'drain' || status === 'maint') {
+    if (nodeStatus === 'drain' || nodeStatus === 'maint') {
         return '0%';
     }
 
@@ -97,7 +96,7 @@ let firstTimeWentDrained = 0;
 function healthReportRightNow() {
     const nowHealthReport = <HealthReport>JSON.parse(JSON.stringify(healthReport));
     // an operator's maint must win over any drain the sidecar adds
-    const drainStatus = nowHealthReport.status.toLowerCase() === 'maint' ? 'maint' : 'drain';
+    const drainStatus = nowHealthReport.status === 'maint' ? 'maint' : 'drain';
     if (nowHealthReport.healthy) {
         // basic health report is good, now check that we're not in the health dampening interval
         if (checkHealthDampeningPeriod()) {

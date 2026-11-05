@@ -61,7 +61,7 @@ they can be set in `/etc/jitsi/signal-sidecar/config`
 Set the contents of the file at `STATUS_PATH` to `ready` or `drain` depending on
 what you want **signal-sidecar** to report. It can also be set to `unhealthy`
 for testing purposes, which will force **signal-sidecar** to always report
-unhealthy.
+unhealthy. The value is not case-sensitive. The report shows it in lowercase.
 
 ### flap prevention configuration
 
