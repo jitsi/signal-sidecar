@@ -222,7 +222,7 @@ export default class HealthCollector {
             jicofoHealthy = true;
         }
 
-        if (jicofoHealth.reachable && jicofoHealth.code == 503) {
+        if (jicofoHealth.reachable && (jicofoHealth.code == 503 || jicofoHealth.code == 500)) {
             jicofoSoftDown = true;
         }
 

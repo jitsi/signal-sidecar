@@ -91,7 +91,8 @@ unhealthy.
   be forced higher. Defaults to 2 minutes. If the node goes unhealthy again
   within `HEALTH_DAMPENING_INTERVAL` of its last unhealthy poll, the grace
   period keeps counting from the first unhealthy poll, so a flapping node still
-  reaches DOWN.
+  reaches DOWN. DOWN is not sticky: after the grace period, each unhealthy poll
+  reports DOWN and each healthy poll reports DRAIN for the dampening interval.
 
   The grace period applies to a *soft* down, which is what overload looks like:
   jicofo answers its health check with 503 (test conference timed out) or 500

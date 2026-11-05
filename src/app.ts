@@ -116,6 +116,7 @@ function healthReportRightNow() {
             // the agent holds off new rooms for the interval so an overloaded node does not
             // take them the moment it answers again
             nowHealthReport.status = drainStatus;
+            nowHealthReport.healthdamped = true;
         }
     } else {
         // unhealthy, check if we are in the drain grace period
@@ -164,8 +165,7 @@ function checkSoftDown(checkHealthReport: HealthReport): boolean {
     }
     const services = checkHealthReport.services;
     const prosodySlowOrHealthy = services.prosodyHealthy || services.prosodySoftDown;
-    const jicofoSlow = services.jicofoSoftDown || (services.jicofoReachable && services.jicofoStatusCode == 500);
-    if (jicofoSlow && prosodySlowOrHealthy) {
+    if (services.jicofoSoftDown && prosodySlowOrHealthy) {
         return true;
     }
     if (services.jicofoHealthy && services.prosodySoftDown) {
