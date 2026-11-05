@@ -153,7 +153,7 @@ export default class HealthCollector {
         try {
             const data = readFileSync(filePath, 'utf8');
             readable = true;
-            contents = data.trim();
+            contents = data.trim().toLowerCase();
         } catch (err) {
             logger.warn('health_collector readStatusFile failed', { err, path: filePath });
         }
@@ -222,7 +222,7 @@ export default class HealthCollector {
             jicofoHealthy = true;
         }
 
-        if (jicofoHealth.reachable && jicofoHealth.code == 503) {
+        if (jicofoHealth.reachable && (jicofoHealth.code == 503 || jicofoHealth.code == 500)) {
             jicofoSoftDown = true;
         }
 
@@ -244,7 +244,7 @@ export default class HealthCollector {
             jicofoHealthy &&
             prosodyHealthy &&
             statusFileResult.readable &&
-            parsedStatsFlag &&        // stats file parsed successfully
+            parsedStatsFlag && // stats file parsed successfully
             statusFileResult.contents !== 'unhealthy'
         ) {
             overallhealth = true;

@@ -64,6 +64,10 @@ const env = envalid.cleanEnv(process.env, {
         desc: 'seconds for haproxy agent to report DRAIN before switching to DOWN',
         default: 120,
     }),
+    DAMPENING_REPORTS_DRAIN: envalid.bool({
+        desc: 'report DRAIN instead of DOWN, or instead of READY after a soft down, to the haproxy agent while in the health dampening interval',
+        default: true,
+    }),
     METRICS: envalid.bool({
         desc: 'publish prometheus metrics?',
         default: true,
@@ -122,6 +126,7 @@ const out = {
     WeightParticipants: env.WEIGHT_PARTICIPANTS,
     HealthDampeningInterval: env.HEALTH_DAMPENING_INTERVAL,
     DrainGraceInterval: <number>env.DRAIN_GRACE_INTERVAL,
+    DampeningReportsDrain: env.DAMPENING_REPORTS_DRAIN,
     Metrics: env.METRICS,
     LogLevel: env.LOG_LEVEL,
     ConsulHost: env.CONSUL_HOST,

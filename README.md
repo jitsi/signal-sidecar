@@ -54,13 +54,14 @@ they can be set in `/etc/jitsi/signal-sidecar/config`
 * `CENSUS_HOST`: conference host name for census
 * `HEALTH_DAMPENING_INTERVAL`: seconds to wait before report can go healthy [30]
 * `DRAIN_GRACE_INTERVAL`: seconds for tcp agent to report drain instead of down [120]
+* `DAMPENING_REPORTS_DRAIN`: tcp agent reports drain instead of down, or instead of ready after a soft down, during the health dampening interval [true]
 * `METRICS`: boolean indicating whether to publish prometheus metrics [true]
 * `LOG_LEVEL`: debug, info, warn, or error [info]
 
 Set the contents of the file at `STATUS_PATH` to `ready` or `drain` depending on
 what you want **signal-sidecar** to report. It can also be set to `unhealthy`
 for testing purposes, which will force **signal-sidecar** to always report
-unhealthy.
+unhealthy. The value is not case-sensitive. The report shows it in lowercase.
 
 ### flap prevention configuration
 
@@ -71,15 +72,38 @@ unhealthy.
   be useful for the case where a system is under heavy load and jicofo or
   prosody are going into and out of healthy states. **signal-sidecar** will
   report that it is healthy after the last time a component was detected as
-  being unhealthy plus this interval. Defaults to 30 seconds.
+  being unhealthy plus this interval. Defaults to 30 seconds. While the interval
+  runs the REST endpoints keep answering unhealthy, but the TCP agent reports
+  DRAIN rather than DOWN (`DAMPENING_REPORTS_DRAIN`, default true): the rooms
+  already on the node stay there and only new rooms are held off. DOWN would
+  move those rooms to another node. A soft down (see below) that recovers inside
+  the grace period keeps the REST endpoints healthy. With
+  `DAMPENING_REPORTS_DRAIN`, the TCP agent still reports DRAIN for this interval
+  after the last unhealthy poll. A `maint` status file is reported as MAINT,
+  never DRAIN.
 
 * `DRAIN_GRACE_INTERVAL` is used to cause the HAProxy TCP agent to back off from
-  marking itself as DOWN immediately upon detecting jicofo as unhealthy. This gives
-  jicofo a chance to recover from load spikes if prosody continues to function.
-  **signal-sidecar** will report DRAIN to the HAProxy from the time that jicofo
-  initially went unhealthy and only begin reporting DOWN after this interval has
-  passed. This must be set higher than `HEALTH_DAMPENING_INTERVAL`, and if it is
-  not, it will be forced higher. Defaults to 2 minutes.
+  marking itself as DOWN immediately upon detecting the node as unhealthy. This
+  gives jicofo and prosody a chance to recover from load spikes. **signal-sidecar**
+  will report DRAIN to the HAProxy from the time that the node initially went
+  unhealthy and only begin reporting DOWN after this interval has passed. This
+  must be set higher than `HEALTH_DAMPENING_INTERVAL`, and if it is not, it will
+  be forced higher. Defaults to 2 minutes. If the node goes unhealthy again
+  within `HEALTH_DAMPENING_INTERVAL` of its last unhealthy poll, the grace
+  period keeps counting from the first unhealthy poll, so a flapping node still
+  reaches DOWN. DOWN is not sticky: after the grace period, each unhealthy poll
+  reports DOWN. With `DAMPENING_REPORTS_DRAIN`, each healthy poll reports DRAIN
+  for the dampening interval.
+
+  The grace period applies to a *soft* down, which is what overload looks like:
+  jicofo answers its health check with 503 (test conference timed out) or 500
+  (health check took too long, no health checks performed recently, test
+  conference failed to start) while prosody is healthy or only timing out, or
+  jicofo is healthy while prosody only times out. Here jicofo is healthy when
+  `/about/health` and `/stats` both answer 200. Every other unhealthy state is a
+  hard down and the agent reports DOWN at once. Examples: any other jicofo
+  answer, jicofo not answering at all, prosody refusing the connection or
+  answering with an error, or a status file set to `unhealthy`.
 
 These are enabled by default and can be disabled by setting them to 0.
 
