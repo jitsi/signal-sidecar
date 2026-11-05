@@ -66,7 +66,8 @@ let healthReport = initHealthReport;
 let pollHealthy = true; // suppress state change log on restart
 
 export function calculateWeight(nodeStatus: string, currentParticipants: number): string {
-    if (nodeStatus === 'drain' || nodeStatus === 'maint') {
+    const status = nodeStatus.toLowerCase();
+    if (status === 'drain' || status === 'maint') {
         return '0%';
     }
 
